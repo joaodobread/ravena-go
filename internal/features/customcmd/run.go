@@ -117,10 +117,9 @@ func (m *Module) execute(ctx context.Context, msg *bot.Message, cmd *Command, ar
 	}
 
 	// Pausa, mute da categoria, anti-spam e cooldown vêm da policy do bot.
-	bc := &bot.Context{
-		Message: msg, Invoked: cmd.Trigger, Args: args, Client: m.client, Prefix: m.router.PrefixFor(ctx, msg),
-		Command: &bot.Command{Name: cmd.Trigger, Category: Category, Cooldown: time.Duration(cmd.CooldownSec) * time.Second},
-	}
+	bc := m.router.NewContext(ctx, msg,
+		&bot.Command{Name: cmd.Trigger, Category: Category, Cooldown: time.Duration(cmd.CooldownSec) * time.Second},
+		cmd.Trigger, args)
 	// Respostas só com {cmd-} passam pela policy nos próprios comandos
 	// embutidos; checar aqui também faria o anti-spam barrá-los.
 	if m.policy != nil && !silent && !onlyEmbedded(cmd) {

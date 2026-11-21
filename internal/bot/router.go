@@ -344,6 +344,12 @@ func (r *Router) HasTrigger(emoji string) bool {
 	return ok
 }
 
+// NewContext monta o Context de um comando que não passou pelo Handle (ex.:
+// comandos personalizados), com prefixo do chat e papéis resolvidos pela policy.
+func (r *Router) NewContext(ctx context.Context, msg *Message, cmd *Command, invoked string, args []string) *Context {
+	return r.newContext(msg, cmd, invoked, args, r.PrefixFor(ctx, msg))
+}
+
 func (r *Router) newContext(msg *Message, cmd *Command, invoked string, args []string, prefix string) *Context {
 	c := &Context{Message: msg, Command: cmd, Invoked: invoked, Args: args, Client: r.client, Prefix: prefix}
 	if r.policy != nil {

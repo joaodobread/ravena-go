@@ -357,6 +357,8 @@ func TestPausedAndMutedCategory(t *testing.T) {
 	if len(e.fc.Replies) != 0 {
 		t.Fatal("categoria silenciada não deveria responder")
 	}
+	e.admin("!oi") // como nos comandos do bot, admin passa pelo mute
+	e.expectLast("olá")
 }
 
 func TestVariables(t *testing.T) {
