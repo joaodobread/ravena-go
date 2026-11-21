@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/joaodobread/ravena-go/internal/app"
+	"github.com/joaodobread/ravena-go/internal/features/ai"
 	"github.com/joaodobread/ravena-go/internal/features/download"
 	"github.com/joaodobread/ravena-go/internal/features/greetings"
 	"github.com/joaodobread/ravena-go/internal/features/mediafx"
@@ -14,6 +15,9 @@ import (
 func features() []app.Feature {
 	return []app.Feature{
 		sticker.Module{},
+		// ai antes dos comandos personalizados: menção/elogios/interação
+		// automática precisam ver a mensagem antes de um gatilho de grupo.
+		&ai.Module{},
 		greetings.Module{},
 		download.Module{},
 		reminders.Module{},

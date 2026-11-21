@@ -94,12 +94,20 @@ func (s *Store) Group(ctx context.Context, jid string) (*Group, bool, error) {
 	g, ok := s.groups[jid]
 	s.mu.RUnlock()
 	if ok {
+		if g == nil {
+			return nil, false, nil
+		}
 		return g.clone(), true, nil
 	}
 
 	var raw string
 	err := s.db.QueryRowContext(ctx, `SELECT data FROM groups WHERE jid = ?`, jid).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
+		s.mu.Lock()
+		if _, saved := s.groups[jid]; !saved {
+			s.groups[jid] = nil
+		}
+		s.mu.Unlock()
 		return nil, false, nil
 	}
 	if err != nil {

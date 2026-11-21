@@ -158,3 +158,23 @@ func TestUsageStats(t *testing.T) {
 		t.Fatalf("prune: %d %v", n, err)
 	}
 }
+
+func TestMissingGroupIsCachedUntilSaved(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	if _, ok, _ := s.Group(ctx, "x"); ok {
+		t.Fatal("não deveria existir")
+	}
+	if g, present := s.groups["x"]; !present || g != nil {
+		t.Fatal("ausência deveria ficar em cache")
+	}
+	if _, ok, _ := s.Group(ctx, "x"); ok {
+		t.Fatal("cache de ausência devolveu grupo")
+	}
+	if _, err := s.UpdateGroup(ctx, "x", func(g *Group) { g.Prefix = "#" }); err != nil {
+		t.Fatal(err)
+	}
+	if g, ok, _ := s.Group(ctx, "x"); !ok || g.Prefix != "#" {
+		t.Fatalf("depois de salvar: %+v %v", g, ok)
+	}
+}

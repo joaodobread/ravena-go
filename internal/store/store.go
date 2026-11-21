@@ -18,7 +18,9 @@ type Store struct {
 	db *sql.DB
 
 	mu     sync.RWMutex
-	groups map[string]*Group // cache; o banco é a fonte da verdade
+	// groups é o cache dos grupos; nil marca "não salvo" (evita ler o banco a
+	// cada mensagem de grupos sem configuração). O banco é a fonte da verdade.
+	groups map[string]*Group
 }
 
 // Open abre (ou cria) o banco em path e aplica as migrações do núcleo.
