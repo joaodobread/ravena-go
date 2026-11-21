@@ -14,18 +14,6 @@ docker build -t ravena-go . && docker run -v ravena-data:/data -p 8080:8080 -e A
 
 Pareamento: abra o painel e escaneie o QR, ou defina `PAIR_PHONE` para receber um código (aparece no painel e no log).
 
-### Trazendo os dados do Ravena em Node
-
-Importa as configurações dos grupos (prefixo, pausa, interações, boas-vindas, silenciados, admins, ignorados) e os comandos personalizados com as mídias. Pode rodar de novo à vontade, porque sobrescreve a importação anterior. Figurinhas animadas salvas como URL (`stickerGif`) ficam de fora e aparecem no log.
-
-```sh
-# copia sqlites/ e media/ do volume do bot antigo (/app/data)
-railway ssh -s ravena-ai -- sh -c "'tar czf - -C /app/data sqlites media | base64'" | base64 -d > ravena-node.tgz
-mkdir node-data && tar xzf ravena-node.tgz -C node-data
-# com o ravena-go parado, apontando para o mesmo DATA_DIR
-DATA_DIR=./data go run ./cmd/ravena import-node ./node-data
-```
-
 ## Variáveis de ambiente
 
 | Variável | Padrão | |

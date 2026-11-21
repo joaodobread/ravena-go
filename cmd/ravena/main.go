@@ -26,7 +26,6 @@ import (
 	"github.com/joaodobread/ravena-go/internal/config"
 	"github.com/joaodobread/ravena-go/internal/llm"
 	"github.com/joaodobread/ravena-go/internal/media"
-	"github.com/joaodobread/ravena-go/internal/nodeimport"
 	"github.com/joaodobread/ravena-go/internal/policy"
 	"github.com/joaodobread/ravena-go/internal/store"
 	"github.com/joaodobread/ravena-go/internal/wa"
@@ -34,13 +33,6 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "import-node" {
-		if err := importNode(os.Args[2:]); err != nil {
-			slog.Error("importação falhou", "err", err)
-			os.Exit(1)
-		}
-		return
-	}
 	if err := run(); err != nil {
 		slog.Error("encerrando", "err", err)
 		os.Exit(1)
@@ -238,31 +230,3 @@ func adminPassword(ctx context.Context, cfg config.Config, st *store.Store, log 
 	return pass, nil
 }
 
-// importNode traz os dados do Ravena em Node: ravena import-node <pasta data/ do Node>.
-// Rode com o bot parado (o SQLite do ravena-go tem um escritor só).
-func importNode(args []string) error {
-	if len(args) != 1 {
-		return errors.New("uso: ravena import-node <pasta data/ do Ravena em Node>")
-	}
-	cfg, err := config.Load(config.Getenv)
-	if err != nil {
-		return err
-	}
-	ctx := context.Background()
-	if err := os.MkdirAll(cfg.DataDir, 0o700); err != nil {
-		return err
-	}
-	st, err := store.Open(ctx, filepath.Join(cfg.DataDir, "app.db"))
-	if err != nil {
-		return err
-	}
-	defer st.Close()
-	rep, err := nodeimport.Run(ctx, args[0], st, cfg.DataDir, slog.Default())
-	if rep != nil {
-		for _, s := range rep.Skipped {
-			slog.Warn("resposta não importada", "detalhe", s)
-		}
-		slog.Info("importação", "grupos", rep.Groups, "comandos", rep.Commands, "midias", rep.Media, "puladas", len(rep.Skipped))
-	}
-	return err
-}
