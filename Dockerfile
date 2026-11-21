@@ -8,8 +8,9 @@ COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ravena ./cmd/ravena
 
 FROM alpine:3.22
-# ffmpeg: conversões; imagemagick: figurinha animada → MP4 (o ffmpeg não lê WebP animado).
-RUN apk add --no-cache ca-certificates tzdata ffmpeg imagemagick imagemagick-webp \
+# ffmpeg: conversões; imagemagick: efeitos e figurinha animada → MP4 (o ffmpeg
+# não lê WebP animado); yt-dlp: downloads. Todos rodam só sob demanda.
+RUN apk add --no-cache ca-certificates tzdata ffmpeg imagemagick imagemagick-webp imagemagick-jpeg yt-dlp \
     && adduser -D -H -u 10001 ravena \
     && mkdir -p /data && chown ravena /data
 COPY --from=build /out/ravena /usr/local/bin/ravena

@@ -8,6 +8,8 @@ import (
 	"slices"
 	"testing"
 
+	"go.mau.fi/whatsmeow/types"
+
 	"github.com/joaodobread/ravena-go/internal/bot"
 	"github.com/joaodobread/ravena-go/internal/bot/bottest"
 )
@@ -183,5 +185,30 @@ func TestObserversSeeEveryAdmittedMessage(t *testing.T) {
 	r.Handle(context.Background(), own)
 	if !slices.Equal(seen, []string{"oi", "!x"}) {
 		t.Fatalf("seen = %q", seen)
+	}
+}
+
+func TestGroupEventsReachHandlersAndRecover(t *testing.T) {
+	r, _ := newRouter(t)
+	var got []string
+	r.OnGroupEvent(func(_ context.Context, ev bot.GroupEvent, _ bot.Client) { got = append(got, ev.Joined[0].User) })
+	r.OnGroupEvent(func(context.Context, bot.GroupEvent, bot.Client) { panic("boom") })
+	r.HandleGroupEvent(context.Background(), bot.GroupEvent{Chat: bottest.Group, Joined: []types.JID{bottest.User}})
+	if !slices.Equal(got, []string{bottest.User.User}) {
+		t.Fatalf("got = %v", got)
+	}
+}
+
+func TestRawArgsKeepsLineBreaks(t *testing.T) {
+	r, _ := newRouter(t)
+	var got string
+	_ = r.Register(&bot.Command{Name: "eco", Run: func(_ context.Context, c *bot.Context) error { got = c.RawArgs(); return nil }})
+	r.Handle(context.Background(), msg("  !ECO   linha 1\nlinha  2  "))
+	if got != "linha 1\nlinha  2" {
+		t.Fatalf("RawArgs = %q", got)
+	}
+	r.Handle(context.Background(), msg("!eco"))
+	if got != "" {
+		t.Fatalf("sem argumentos: %q", got)
 	}
 }

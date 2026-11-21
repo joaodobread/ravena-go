@@ -35,6 +35,10 @@
   {{end}}
 </div>
 <div class="grid">
+  <div class="card"><h2>Boas-vindas</h2><p class="muted small">Vazio desliga. Variáveis: {pessoa}, {grupo}, {plural_s}, {plural_esao}.</p><textarea name="greeting">{{.G.Greeting}}</textarea></div>
+  <div class="card"><h2>Despedida</h2><p class="muted small">Vazio desliga. Mesmas variáveis.</p><textarea name="farewell">{{.G.Farewell}}</textarea></div>
+</div>
+<div class="grid">
   <div class="card"><h2>Admins adicionais</h2><p class="muted small">Um número por linha. Podem usar comandos de admin do grupo.</p><textarea name="admins">{{lines .G.AdditionalAdmins}}</textarea></div>
   <div class="card"><h2>Usuários ignorados</h2><p class="muted small">Um número por linha. O bot não responde a eles.</p><textarea name="ignored">{{lines .G.IgnoredUsers}}</textarea></div>
 </div>

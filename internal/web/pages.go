@@ -196,6 +196,8 @@ func (s *Server) saveGroup(w http.ResponseWriter, r *http.Request) {
 		g.MutedCategories = f["muted_cat"]
 		g.IgnoredUsers = numbers(f.Get("ignored"))
 		g.AdditionalAdmins = numbers(f.Get("admins"))
+		g.Greeting = strings.TrimSpace(f.Get("greeting"))
+		g.Farewell = strings.TrimSpace(f.Get("farewell"))
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

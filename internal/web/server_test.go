@@ -155,6 +155,7 @@ func TestGroupSettingsRoundTrip(t *testing.T) {
 		"interact_enabled": {"on"}, "interact_chance": {"9999"}, "interact_cooldown": {"1"}, "interact_proporcao": {"70"},
 		"muted": {"dado"}, "muted_cat": {"midia"},
 		"admins": {"+55 (11) 98888-8888\n5511777777777"}, "ignored": {"5511666666666, 5511666666666"},
+		"greeting": {"  Bem-vindo {pessoa}!\n"},
 	})
 	if !strings.Contains(body, "Configurações salvas") {
 		t.Fatalf("salvar grupo: %.300s", body)
@@ -166,7 +167,8 @@ func TestGroupSettingsRoundTrip(t *testing.T) {
 	if g.Prefix != "/" || !g.Paused || g.Silly || g.Interact.Chance != store.MaxInteractChance ||
 		g.Interact.CooldownMin != store.MinInteractCooldownMin || g.Interact.Proporcao != 70 ||
 		!g.IsMuted("dado", "") || !g.IsMuted("s", "midia") ||
-		len(g.AdditionalAdmins) != 2 || g.AdditionalAdmins[0] != "5511988888888" || len(g.IgnoredUsers) != 1 {
+		len(g.AdditionalAdmins) != 2 || g.AdditionalAdmins[0] != "5511988888888" || len(g.IgnoredUsers) != 1 ||
+		g.Greeting != "Bem-vindo {pessoa}!" || g.Farewell != "" {
 		t.Fatalf("grupo salvo errado: %+v", g)
 	}
 	_, page := e.get(t, "/groups/"+jid)

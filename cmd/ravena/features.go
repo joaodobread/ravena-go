@@ -2,6 +2,9 @@ package main
 
 import (
 	"github.com/joaodobread/ravena-go/internal/app"
+	"github.com/joaodobread/ravena-go/internal/features/download"
+	"github.com/joaodobread/ravena-go/internal/features/greetings"
+	"github.com/joaodobread/ravena-go/internal/features/reminders"
 	"github.com/joaodobread/ravena-go/internal/features/sticker"
 )
 
@@ -10,5 +13,8 @@ import (
 func features() []app.Feature {
 	return []app.Feature{
 		sticker.Module{},
+		greetings.Module{},
+		download.Module{},
+		reminders.Module{},
 	}
 }

@@ -194,6 +194,14 @@ func wireEvents(ctx context.Context, cfg config.Config, waClient *whatsmeow.Clie
 			dispatch(func(ctx context.Context) { router.Handle(ctx, msg) })
 		case *events.GroupInfo:
 			client.Invalidate(e.JID) // admins/nome mudaram
+			if len(e.Join)+len(e.Leave)+len(e.Promote)+len(e.Demote) == 0 {
+				return
+			}
+			ev := bot.GroupEvent{Chat: e.JID, Joined: e.Join, Left: e.Leave, Promoted: e.Promote, Demoted: e.Demote}
+			if e.Sender != nil {
+				ev.By = *e.Sender
+			}
+			dispatch(func(ctx context.Context) { router.HandleGroupEvent(ctx, ev) })
 		case *events.Connected:
 			log.Info("conectado ao WhatsApp", "jid", waClient.Store.ID)
 		}

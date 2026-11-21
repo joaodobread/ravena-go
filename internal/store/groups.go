@@ -51,7 +51,11 @@ type Group struct {
 	AdditionalAdmins []string `json:"additionalAdmins,omitempty"`
 	Interact         Interact `json:"interact"`
 	// Silly liga as respostas a elogios/xingamentos ao bot.
-	Silly     bool      `json:"silly"`
+	Silly bool `json:"silly"`
+	// Greeting e Farewell são as mensagens de boas-vindas/despedida ("" desliga).
+	// Aceitam {pessoa} (menção a quem entrou/saiu) e {grupo}.
+	Greeting  string    `json:"greeting,omitempty"`
+	Farewell  string    `json:"farewell,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

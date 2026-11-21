@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"go.mau.fi/whatsmeow/types"
 )
@@ -101,6 +102,20 @@ func (c *Context) IsSuperAdmin(ctx context.Context) bool {
 // ArgText são os argumentos juntados por espaço.
 func (c *Context) ArgText() string { return strings.Join(c.Args, " ") }
 
+// RawArgs é o texto depois do nome do comando, preservando quebras de linha e
+// espaços internos (para textos livres, como mensagens de boas-vindas).
+func (c *Context) RawArgs() string {
+	text := strings.TrimSpace(c.Message.Text)
+	if !strings.HasPrefix(text, c.Prefix) || c.Reaction != nil {
+		return c.ArgText()
+	}
+	text = strings.TrimLeft(text[len(c.Prefix):], " \t")
+	if i := strings.IndexFunc(text, unicode.IsSpace); i >= 0 {
+		return strings.TrimSpace(text[i:])
+	}
+	return ""
+}
+
 // Reply responde citando a mensagem do comando.
 func (c *Context) Reply(ctx context.Context, out Outgoing) error {
 	return c.Client.Reply(ctx, c.Message, out)
@@ -173,6 +188,8 @@ type Router struct {
 	triggers  map[string]*Command
 	listeners []Listener
 	observers []Observer
+
+	groupHandlers []GroupHandler
 }
 
 // NewRouter cria um Router com o prefixo padrão de comandos (ex.: "!").
