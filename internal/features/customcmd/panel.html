@@ -1,0 +1,52 @@
+{{define "index"}}
+<h1>Comandos personalizados</h1>
+<div class="card scroll">
+{{if .Chats}}
+<table>
+<tr><th>Grupo</th><th>Comandos</th></tr>
+{{range .Chats}}
+<tr><td><a href="/custom/{{.Chat}}">{{if .Name}}{{.Name}}{{else}}{{.Chat}}{{end}}</a></td><td>{{.Count}}</td></tr>
+{{end}}
+</table>
+{{else}}<p class="muted">Nenhum grupo tem comandos personalizados ainda. Crie com <code>!g-addCmd</code> no grupo.</p>{{end}}
+</div>
+{{end}}
+
+{{define "chat"}}
+<p><a href="/custom">← Grupos</a></p>
+<h1>{{if .Name}}{{.Name}}{{else}}{{.Chat}}{{end}}</h1>
+{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+{{if not .Cmds}}<p class="muted">Este grupo não tem comandos personalizados.</p>{{end}}
+{{range .Cmds}}{{$t := .Trigger}}
+<div class="card">
+  <div class="row">
+    <h2><code>{{.Trigger}}</code></h2>
+    {{if .Active}}<span class="pill ok">ativo</span>{{else}}<span class="pill warn">desativado</span>{{end}}
+    {{if .AdminOnly}}<span class="pill">só admin</span>{{end}}
+    {{if .IgnorePrefix}}<span class="pill">sem prefixo</span>{{end}}
+    {{if .SendAll}}<span class="pill">envia todas</span>{{end}}
+    {{if .CooldownSec}}<span class="pill">cd {{.CooldownSec}}s</span>{{end}}
+    <span class="muted small">usado {{.Count}}×</span>
+  </div>
+  <div class="row">
+    <form method="post" action="/custom/{{$.Chat}}/toggle"><input type="hidden" name="trigger" value="{{.Trigger}}">
+      <button type="submit" class="ghost">{{if .Active}}Desativar{{else}}Ativar{{end}}</button></form>
+    <form method="post" action="/custom/{{$.Chat}}/delete" onsubmit="return confirm('Excluir o comando {{.Trigger}}?')"><input type="hidden" name="trigger" value="{{.Trigger}}">
+      <button type="submit" class="ghost">Excluir</button></form>
+  </div>
+  {{range $i, $r := .Responses}}
+  <details {{if eq $i 0}}open{{end}}><summary>Resposta {{$i}}{{if $r.Kind}} · {{$r.Kind}}{{end}}</summary>
+    {{if $r.Kind}}<p><a href="/custom/{{$.Chat}}/media/{{$r.File}}" target="_blank">{{$r.File}}</a></p>{{end}}
+    <form method="post" action="/custom/{{$.Chat}}/response">
+      <input type="hidden" name="trigger" value="{{$t}}"><input type="hidden" name="index" value="{{$i}}">
+      <label>{{if $r.Kind}}Legenda{{else}}Texto{{end}}<textarea name="text" rows="3">{{$r.Text}}</textarea></label>
+      <div class="row">
+        <button type="submit" name="action" value="save">Salvar</button>
+        <button type="submit" name="action" value="delete" class="ghost">Apagar resposta</button>
+      </div>
+    </form>
+  </details>
+  {{end}}
+</div>
+{{end}}
+{{end}}

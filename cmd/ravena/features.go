@@ -3,10 +3,12 @@ package main
 import (
 	"github.com/joaodobread/ravena-go/internal/app"
 	"github.com/joaodobread/ravena-go/internal/features/ai"
+	"github.com/joaodobread/ravena-go/internal/features/customcmd"
 	"github.com/joaodobread/ravena-go/internal/features/download"
 	"github.com/joaodobread/ravena-go/internal/features/fishing"
 	"github.com/joaodobread/ravena-go/internal/features/fun"
 	"github.com/joaodobread/ravena-go/internal/features/greetings"
+	"github.com/joaodobread/ravena-go/internal/features/groupadmin"
 	"github.com/joaodobread/ravena-go/internal/features/groupcmds"
 	"github.com/joaodobread/ravena-go/internal/features/mediafx"
 	"github.com/joaodobread/ravena-go/internal/features/menu"
@@ -25,19 +27,23 @@ func features() []app.Feature {
 	slotsGame := &slots.Module{}
 	fishingGame := &fishing.Module{Wallet: slotsGame}
 	slotsGame.Tackle = fishingGame
+	// Comandos personalizados alimentam a interação automática e o menu.
+	custom := &customcmd.Module{}
 
 	return []app.Feature{
 		sticker.Module{},
 		// ai antes dos comandos personalizados: menção/elogios/interação
 		// automática precisam ver a mensagem antes de um gatilho de grupo.
-		&ai.Module{},
+		&ai.Module{Custom: custom},
+		custom,
+		&groupadmin.Module{},
 		greetings.Module{},
 		download.Module{},
 		reminders.Module{},
 		mediafx.Module{},
 		util.Module{},
 		translate.Module{},
-		menu.Module{},
+		menu.Module{Extra: custom},
 		slotsGame,
 		fishingGame,
 		fun.Module{},
