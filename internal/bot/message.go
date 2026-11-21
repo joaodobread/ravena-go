@@ -42,7 +42,9 @@ type Message struct {
 	FromMe    bool
 	Timestamp time.Time
 	Text      string
-	Media     *Media
+	// Mentions são os usuários marcados (@) na mensagem.
+	Mentions []types.JID
+	Media    *Media
 	// Quoted é a mensagem respondida (só ID, Sender, Text e Media).
 	Quoted *Message
 	// Ref guarda dados do adaptador (ex.: a mensagem crua para citar na resposta).
@@ -53,6 +55,9 @@ type Message struct {
 func (m *Message) SenderIs(jid types.JID) bool {
 	return jid.User != "" && (m.Sender.User == jid.User || m.SenderAlt.User == jid.User)
 }
+
+// MentionText devolve o texto "@numero" que, junto de Outgoing.Mentions, marca jid.
+func MentionText(jid types.JID) string { return "@" + jid.User }
 
 // AnyMedia devolve a mídia da mensagem ou, se não tiver, a da mensagem citada.
 func (m *Message) AnyMedia() *Media {

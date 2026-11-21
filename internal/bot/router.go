@@ -109,6 +109,10 @@ func (c *Context) ReplyText(ctx context.Context, format string, args ...any) err
 	return c.Reply(ctx, Text(format))
 }
 
+// Observer vê toda mensagem admitida, antes dos comandos (ranking, buffer de
+// conversa...). Deve ser rápido e não pode responder: roda no caminho de toda mensagem.
+type Observer func(ctx context.Context, msg *Message)
+
 // Listener trata mensagens que não são comandos (figurinha automática,
 // interações...). Devolve true quando tratou a mensagem.
 type Listener func(ctx context.Context, msg *Message, client Client) (bool, error)
@@ -156,6 +160,7 @@ type Router struct {
 	ordered   []*Command
 	triggers  map[string]*Command
 	listeners []Listener
+	observers []Observer
 }
 
 // NewRouter cria um Router com o prefixo padrão de comandos (ex.: "!").
@@ -202,6 +207,9 @@ func (r *Router) Lookup(name string) (*Command, bool) {
 	return c, ok
 }
 
+// Observe adiciona um Observer.
+func (r *Router) Observe(o Observer) { r.observers = append(r.observers, o) }
+
 // Listen adiciona um Listener; eles rodam em ordem até um tratar a mensagem.
 func (r *Router) Listen(l Listener) { r.listeners = append(r.listeners, l) }
 
@@ -241,6 +249,9 @@ func (r *Router) Handle(ctx context.Context, msg *Message) {
 	defer r.recover(msg)
 	if r.policy != nil && !r.policy.Admit(ctx, msg) {
 		return
+	}
+	for _, o := range r.observers {
+		o(ctx, msg)
 	}
 
 	prefix := r.PrefixFor(ctx, msg)

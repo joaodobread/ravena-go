@@ -110,3 +110,13 @@ func TestQuoteUsesRawMessage(t *testing.T) {
 		t.Fatalf("ContextInfo inesperado: %+v", ci)
 	}
 }
+
+func TestConvertMentions(t *testing.T) {
+	m := Convert(&fakeDownloader{}, event(&waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+		Text:        new("!namorar @5511999999999"),
+		ContextInfo: &waE2E.ContextInfo{MentionedJID: []string{sender.String()}},
+	}}))
+	if len(m.Mentions) != 1 || m.Mentions[0] != sender {
+		t.Fatalf("Mentions = %v", m.Mentions)
+	}
+}

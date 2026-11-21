@@ -37,7 +37,13 @@ func Convert(d Downloader, evt *events.Message) *bot.Message {
 		Media:     mediaOf(d, m),
 		Ref:       ref{raw: evt.Message},
 	}
-	if ci := contextInfo(m); ci != nil && ci.GetQuotedMessage() != nil {
+	ci := contextInfo(m)
+	for _, raw := range ci.GetMentionedJID() {
+		if j, err := types.ParseJID(raw); err == nil {
+			msg.Mentions = append(msg.Mentions, j)
+		}
+	}
+	if ci != nil && ci.GetQuotedMessage() != nil {
 		q := ci.GetQuotedMessage()
 		sender, _ := types.ParseJID(ci.GetParticipant())
 		qm := unwrap(q)

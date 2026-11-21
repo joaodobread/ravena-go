@@ -170,3 +170,18 @@ func TestHandleReactionRunsTriggeredCommandOnTarget(t *testing.T) {
 		t.Fatal("trigger duplicado deveria falhar")
 	}
 }
+
+func TestObserversSeeEveryAdmittedMessage(t *testing.T) {
+	r, _ := newRouter(t)
+	var seen []string
+	r.Observe(func(_ context.Context, m *bot.Message) { seen = append(seen, m.Text) })
+	_ = r.Register(&bot.Command{Name: "x", Run: func(context.Context, *bot.Context) error { return nil }})
+	r.Handle(context.Background(), msg("oi"))
+	r.Handle(context.Background(), msg("!x"))
+	own := msg("minha")
+	own.FromMe = true
+	r.Handle(context.Background(), own)
+	if !slices.Equal(seen, []string{"oi", "!x"}) {
+		t.Fatalf("seen = %q", seen)
+	}
+}
