@@ -6,8 +6,11 @@ import (
 	"github.com/joaodobread/ravena-go/internal/features/download"
 	"github.com/joaodobread/ravena-go/internal/features/greetings"
 	"github.com/joaodobread/ravena-go/internal/features/mediafx"
+	"github.com/joaodobread/ravena-go/internal/features/menu"
 	"github.com/joaodobread/ravena-go/internal/features/reminders"
 	"github.com/joaodobread/ravena-go/internal/features/sticker"
+	"github.com/joaodobread/ravena-go/internal/features/translate"
+	"github.com/joaodobread/ravena-go/internal/features/util"
 )
 
 // features são as funcionalidades ligadas no bot, na ordem de registro
@@ -22,5 +25,8 @@ func features() []app.Feature {
 		download.Module{},
 		reminders.Module{},
 		mediafx.Module{},
+		util.Module{},
+		translate.Module{},
+		menu.Module{},
 	}
 }
