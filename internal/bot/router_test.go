@@ -139,3 +139,34 @@ func TestIgnoresOwnMessagesAndRecoversPanics(t *testing.T) {
 		t.Fatalf("não deveria responder: %+v", fc.Replies)
 	}
 }
+
+func TestHandleReactionRunsTriggeredCommandOnTarget(t *testing.T) {
+	r, fc := newRouter(t)
+	var got *bot.Context
+	err := r.Register(&bot.Command{
+		Name: "sticker", Triggers: []string{"🖼"},
+		Reactions: bot.Reactions{Before: "⌛️", After: "🖼"},
+		Run:       func(_ context.Context, c *bot.Context) error { got = c; return nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := msg("legenda da foto")
+	r.HandleReaction(context.Background(), target, "👍")
+	if got != nil {
+		t.Fatal("emoji sem trigger não deveria rodar nada")
+	}
+	r.HandleReaction(context.Background(), target, "🖼")
+	if got == nil || got.Message != target || !slices.Equal(got.Args, []string{"legenda", "da", "foto"}) {
+		t.Fatalf("contexto inesperado: %+v", got)
+	}
+	if !slices.Equal(fc.Reactions, []string{"⌛️", "🖼"}) {
+		t.Fatalf("reações = %q", fc.Reactions)
+	}
+	if !r.HasTrigger("🖼") || r.HasTrigger("👍") {
+		t.Fatal("HasTrigger incorreto")
+	}
+	if err := r.Register(&bot.Command{Name: "outro", Triggers: []string{"🖼"}, Run: got.Command.Run}); err == nil {
+		t.Fatal("trigger duplicado deveria falhar")
+	}
+}

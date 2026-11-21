@@ -243,3 +243,19 @@ func TestAutoStickerOnlyInPrivateChats(t *testing.T) {
 		t.Fatal("texto no privado não deveria virar figurinha")
 	}
 }
+
+func TestReactingWithFrameEmojiMakesSticker(t *testing.T) {
+	for _, emoji := range []string{"🖼", "🖼️"} {
+		e := setup(t, nil)
+		target := groupMsg("Pacote Reação", image())
+		e.router.HandleReaction(context.Background(), target, emoji)
+		out := e.client.Last()
+		meta, _ := media.ReadStickerMetadata(out.Out.Data)
+		if out.Out.Kind != bot.OutSticker || out.To != target || meta.PackName != "Pacote Reação" {
+			t.Fatalf("%s: resposta inesperada %+v %+v", emoji, out, meta)
+		}
+		if e.client.Reactions[0] != sticker.Loading {
+			t.Fatalf("%s: primeira reação deveria ser %q, foi %q", emoji, sticker.Loading, e.client.Reactions[0])
+		}
+	}
+}

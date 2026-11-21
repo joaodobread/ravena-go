@@ -26,7 +26,10 @@ type Command struct {
 	Description string
 	Category    string
 	Reactions   Reactions
-	Run         Handler
+	// Triggers são emojis que, usados como reação a uma mensagem, rodam o
+	// comando sobre ela (ex.: reagir 🖼 a uma foto gera a figurinha).
+	Triggers []string
+	Run      Handler
 }
 
 // Context é o que um Handler recebe.
@@ -65,12 +68,13 @@ type Router struct {
 	client    Client
 	log       *slog.Logger
 	commands  map[string]*Command
+	triggers  map[string]*Command
 	listeners []Listener
 }
 
 // NewRouter cria um Router com o prefixo de comandos (ex.: "!").
 func NewRouter(prefix string, client Client, log *slog.Logger) *Router {
-	return &Router{prefix: prefix, client: client, log: log, commands: map[string]*Command{}}
+	return &Router{prefix: prefix, client: client, log: log, commands: map[string]*Command{}, triggers: map[string]*Command{}}
 }
 
 // Register adiciona comandos; nomes e aliases são case-insensitive e únicos.
@@ -85,6 +89,12 @@ func (r *Router) Register(cmds ...*Command) error {
 				return fmt.Errorf("%q já registrado por %q", key, prev.Name)
 			}
 			r.commands[key] = cmd
+		}
+		for _, emoji := range cmd.Triggers {
+			if prev, ok := r.triggers[emoji]; ok {
+				return fmt.Errorf("reação %q já registrada por %q", emoji, prev.Name)
+			}
+			r.triggers[emoji] = cmd
 		}
 	}
 	return nil
@@ -132,6 +142,27 @@ func (r *Router) Handle(ctx context.Context, msg *Message) {
 			return
 		}
 	}
+}
+
+// HandleReaction roda o comando ligado a emoji sobre target, a mensagem que
+// recebeu a reação. O texto/legenda dela vira os argumentos.
+func (r *Router) HandleReaction(ctx context.Context, target *Message, emoji string) {
+	cmd, ok := r.triggers[emoji]
+	if !ok {
+		return
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			r.log.Error("pânico ao tratar reação", "panic", p, "msg", target.ID, "stack", string(debug.Stack()))
+		}
+	}()
+	r.run(ctx, &Context{Message: target, Command: cmd, Invoked: emoji, Args: strings.Fields(target.Text), Client: r.client})
+}
+
+// HasTrigger diz se emoji dispara algum comando.
+func (r *Router) HasTrigger(emoji string) bool {
+	_, ok := r.triggers[emoji]
+	return ok
 }
 
 func (r *Router) run(ctx context.Context, c *Context) {

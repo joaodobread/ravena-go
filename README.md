@@ -48,6 +48,7 @@ Uma funcionalidade nova expõe `Commands() []*bot.Command` e/ou um `bot.Listener
 ## Funcionalidades
 
 - [x] Figurinhas: `!s` `!sticker` `!fig` `!figurinha` (encaixa com transparência), `!sq`/`!sqc`/`!sqb`/`!sqe` (centro/topo/base/esticado), `!sqi` (corte por IA). Argumentos viram o nome do pacote; sem eles, o nome do grupo.
+- [x] Reagir com 🖼 a uma imagem/vídeo gera a figurinha (a legenda vira o nome do pacote). Vale para mensagens da última hora.
 - [x] Responder uma figurinha com `!s` devolve a mídia (animada → MP4, transparente → PNG como documento).
 - [x] No privado, toda imagem/vídeo vira figurinha automaticamente.
 - [ ] Painel web (Go templates + htmx) para habilitar comandos/funções por grupo

@@ -83,24 +83,45 @@ func run() error {
 	// whatsmeow chama os handlers em sequência; o trabalho pesado vai para
 	// goroutines, limitadas por um semáforo para não estourar memória.
 	workers := make(chan struct{}, cfg.Workers)
+	dispatch := func(fn func(context.Context)) {
+		go func() {
+			select {
+			case workers <- struct{}{}:
+			case <-ctx.Done():
+				return
+			}
+			defer func() { <-workers }()
+			hctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+			defer cancel()
+			fn(hctx)
+		}()
+	}
+	// Mensagens com mídia recentes, para reações como 🖼 → figurinha.
+	recent := wa.NewRecent(2000, time.Hour)
+
 	waClient.AddEventHandler(func(evt any) {
 		switch e := evt.(type) {
 		case *events.Message:
 			if time.Since(e.Info.Timestamp) > cfg.MaxMessageAge {
 				return
 			}
-			msg := wa.Convert(waClient, e)
-			go func() {
-				select {
-				case workers <- struct{}{}:
-				case <-ctx.Done():
+			if r, ok := wa.ReactionOf(e); ok {
+				// Ignora as próprias reações (o bot reage 🖼 ao terminar).
+				if e.Info.IsFromMe || !router.HasTrigger(r.Emoji) {
 					return
 				}
-				defer func() { <-workers }()
-				hctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-				defer cancel()
-				router.Handle(hctx, msg)
-			}()
+				target, found := recent.Get(r.Chat, r.TargetID)
+				if !found {
+					log.Debug("reação a mensagem fora do cache", "chat", r.Chat, "msg", r.TargetID)
+					return
+				}
+				msg := wa.Convert(waClient, target)
+				dispatch(func(ctx context.Context) { router.HandleReaction(ctx, msg, r.Emoji) })
+				return
+			}
+			recent.Add(e)
+			msg := wa.Convert(waClient, e)
+			dispatch(func(ctx context.Context) { router.Handle(ctx, msg) })
 		case *events.Connected:
 			log.Info("conectado ao WhatsApp", "jid", waClient.Store.ID)
 		case *events.LoggedOut:

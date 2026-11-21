@@ -48,20 +48,24 @@ func New(conv Converter, focus FocusFinder, publisher string, log *slog.Logger) 
 }
 
 type variant struct {
-	name    string
-	aliases []string
-	desc    string
-	crop    media.Crop
-	ai      bool
+	name     string
+	aliases  []string
+	desc     string
+	crop     media.Crop
+	ai       bool
+	triggers []string
 }
 
+// Loading é a reação enquanto a figurinha é gerada (LOADING_EMOJI no Ravena).
+const Loading = "⌛️"
+
 var variants = []variant{
-	{"sticker", []string{"s", "fig", "figurinha"}, "Converte mídia em figurinha", media.Crop{Mode: media.Contain}, false},
-	{"sq", []string{"stickerq"}, "Figurinha quadrada cortada no meio", media.Crop{Mode: media.Center}, false},
-	{"sqc", []string{"stickerqc"}, "Figurinha quadrada cortada preservando o topo", media.Crop{Mode: media.Top}, false},
-	{"sqb", []string{"stickerqb"}, "Figurinha quadrada cortada preservando a base", media.Crop{Mode: media.Bottom}, false},
-	{"sqe", []string{"stickerqe"}, "Figurinha quadrada esticada, sem cortar", media.Crop{Mode: media.Stretch}, false},
-	{"sqi", []string{"stickerqi"}, "Figurinha quadrada com corte inteligente via IA", media.Crop{Mode: media.Focus}, true},
+	{"sticker", []string{"s", "fig", "figurinha"}, "Converte mídia em figurinha", media.Crop{Mode: media.Contain}, false, []string{"🖼", "🖼️"}},
+	{"sq", []string{"stickerq"}, "Figurinha quadrada cortada no meio", media.Crop{Mode: media.Center}, false, nil},
+	{"sqc", []string{"stickerqc"}, "Figurinha quadrada cortada preservando o topo", media.Crop{Mode: media.Top}, false, nil},
+	{"sqb", []string{"stickerqb"}, "Figurinha quadrada cortada preservando a base", media.Crop{Mode: media.Bottom}, false, nil},
+	{"sqe", []string{"stickerqe"}, "Figurinha quadrada esticada, sem cortar", media.Crop{Mode: media.Stretch}, false, nil},
+	{"sqi", []string{"stickerqi"}, "Figurinha quadrada com corte inteligente via IA", media.Crop{Mode: media.Focus}, true, nil},
 }
 
 // Commands devolve os comandos para registrar no Router.
@@ -73,7 +77,8 @@ func (f *Feature) Commands() []*bot.Command {
 			Aliases:     v.aliases,
 			Description: v.desc,
 			Category:    "midia",
-			Reactions:   bot.Reactions{Before: "⏳", After: "🖼", Error: "❌"},
+			Reactions:   bot.Reactions{Before: Loading, After: "🖼", Error: "❌"},
+			Triggers:    v.triggers,
 			Run: func(ctx context.Context, c *bot.Context) error {
 				return f.handle(ctx, c, v)
 			},
