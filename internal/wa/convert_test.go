@@ -86,6 +86,7 @@ func TestConvertMediaKinds(t *testing.T) {
 		{"gif", &waE2E.Message{VideoMessage: &waE2E.VideoMessage{GifPlayback: new(true)}}, bot.MediaGIF},
 		{"vídeo", &waE2E.Message{VideoMessage: &waE2E.VideoMessage{}}, bot.MediaVideo},
 		{"áudio", &waE2E.Message{AudioMessage: &waE2E.AudioMessage{}}, bot.MediaAudio},
+		{"voz", &waE2E.Message{AudioMessage: &waE2E.AudioMessage{PTT: new(true), Seconds: new(uint32(7)), FileLength: new(uint64(900))}}, bot.MediaAudio},
 		{"documento de imagem", &waE2E.Message{DocumentMessage: &waE2E.DocumentMessage{Mimetype: new("image/png")}}, bot.MediaImage},
 		{"documento pdf", &waE2E.Message{DocumentMessage: &waE2E.DocumentMessage{Mimetype: new("application/pdf")}}, bot.MediaDocument},
 		{"documento com legenda", &waE2E.Message{DocumentWithCaptionMessage: &waE2E.FutureProofMessage{
@@ -132,5 +133,12 @@ func TestMarkSelf(t *testing.T) {
 	MarkSelf(m, botLID)
 	if m.MentionsBot {
 		t.Fatal("não mencionou o bot")
+	}
+}
+
+func TestConvertMediaMetadata(t *testing.T) {
+	m := Convert(&fakeDownloader{}, event(&waE2E.Message{AudioMessage: &waE2E.AudioMessage{PTT: new(true), Seconds: new(uint32(7)), FileLength: new(uint64(900))}}))
+	if !m.Media.PTT || m.Media.Seconds != 7 || m.Media.Size != 900 {
+		t.Fatalf("metadados: %+v", m.Media)
 	}
 }

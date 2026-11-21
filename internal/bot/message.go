@@ -27,6 +27,12 @@ type Media struct {
 	Kind     MediaKind
 	Mime     string
 	Animated bool
+	// Size é o tamanho em bytes informado pelo WhatsApp (0 se desconhecido):
+	// permite recusar arquivos grandes antes de baixar.
+	Size uint64
+	// Seconds é a duração de áudio/vídeo (0 se desconhecida).
+	Seconds  uint32
+	PTT      bool // áudio gravado como mensagem de voz
 	Download func(ctx context.Context) ([]byte, error)
 }
 

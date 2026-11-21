@@ -132,27 +132,30 @@ func mediaOf(d Downloader, m *waE2E.Message) *bot.Media {
 		kind     bot.MediaKind
 		mime     string
 		animated bool
+		ptt      bool
+		size     uint64
+		seconds  uint32
 		dm       whatsmeow.DownloadableMessage
 	)
 	switch {
 	case m.GetImageMessage() != nil:
 		im := m.GetImageMessage()
-		kind, mime, dm = bot.MediaImage, im.GetMimetype(), im
+		kind, mime, size, dm = bot.MediaImage, im.GetMimetype(), im.GetFileLength(), im
 	case m.GetVideoMessage() != nil:
 		vm := m.GetVideoMessage()
-		kind, mime, dm = bot.MediaVideo, vm.GetMimetype(), vm
+		kind, mime, size, seconds, dm = bot.MediaVideo, vm.GetMimetype(), vm.GetFileLength(), vm.GetSeconds(), vm
 		if vm.GetGifPlayback() {
 			kind = bot.MediaGIF
 		}
 	case m.GetStickerMessage() != nil:
 		sm := m.GetStickerMessage()
-		kind, mime, animated, dm = bot.MediaSticker, sm.GetMimetype(), sm.GetIsAnimated(), sm
+		kind, mime, animated, size, dm = bot.MediaSticker, sm.GetMimetype(), sm.GetIsAnimated(), sm.GetFileLength(), sm
 	case m.GetAudioMessage() != nil:
 		am := m.GetAudioMessage()
-		kind, mime, dm = bot.MediaAudio, am.GetMimetype(), am
+		kind, mime, size, seconds, ptt, dm = bot.MediaAudio, am.GetMimetype(), am.GetFileLength(), am.GetSeconds(), am.GetPTT(), am
 	case m.GetDocumentMessage() != nil:
 		doc := m.GetDocumentMessage()
-		mime, dm = doc.GetMimetype(), doc
+		mime, size, dm = doc.GetMimetype(), doc.GetFileLength(), doc
 		switch {
 		case strings.HasPrefix(mime, "image/"):
 			kind = bot.MediaImage
@@ -168,6 +171,9 @@ func mediaOf(d Downloader, m *waE2E.Message) *bot.Media {
 		Kind:     kind,
 		Mime:     mime,
 		Animated: animated,
+		Size:     size,
+		Seconds:  seconds,
+		PTT:      ptt,
 		Download: func(ctx context.Context) ([]byte, error) { return d.Download(ctx, dm) },
 	}
 }
