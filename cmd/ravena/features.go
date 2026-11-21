@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/joaodobread/ravena-go/internal/app"
 	"github.com/joaodobread/ravena-go/internal/features/ai"
+	"github.com/joaodobread/ravena-go/internal/features/anagram"
 	"github.com/joaodobread/ravena-go/internal/features/customcmd"
 	"github.com/joaodobread/ravena-go/internal/features/download"
 	"github.com/joaodobread/ravena-go/internal/features/fishing"
@@ -10,12 +11,17 @@ import (
 	"github.com/joaodobread/ravena-go/internal/features/greetings"
 	"github.com/joaodobread/ravena-go/internal/features/groupadmin"
 	"github.com/joaodobread/ravena-go/internal/features/groupcmds"
+	"github.com/joaodobread/ravena-go/internal/features/lists"
 	"github.com/joaodobread/ravena-go/internal/features/mediafx"
 	"github.com/joaodobread/ravena-go/internal/features/menu"
+	"github.com/joaodobread/ravena-go/internal/features/raffle"
 	"github.com/joaodobread/ravena-go/internal/features/ranking"
+	"github.com/joaodobread/ravena-go/internal/features/relationship"
 	"github.com/joaodobread/ravena-go/internal/features/reminders"
+	"github.com/joaodobread/ravena-go/internal/features/sequence"
 	"github.com/joaodobread/ravena-go/internal/features/slots"
 	"github.com/joaodobread/ravena-go/internal/features/sticker"
+	"github.com/joaodobread/ravena-go/internal/features/stop"
 	"github.com/joaodobread/ravena-go/internal/features/translate"
 	"github.com/joaodobread/ravena-go/internal/features/util"
 )
@@ -49,5 +55,11 @@ func features() []app.Feature {
 		fun.Module{},
 		groupcmds.Module{},
 		ranking.Module{},
+		anagram.Module{},
+		sequence.Module{},
+		stop.Module{},
+		relationship.Module{},
+		raffle.Module{},
+		lists.Module{},
 	}
 }

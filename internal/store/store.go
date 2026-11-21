@@ -17,7 +17,7 @@ import (
 type Store struct {
 	db *sql.DB
 
-	mu     sync.RWMutex
+	mu sync.RWMutex
 	// groups é o cache dos grupos; nil marca "não salvo" (evita ler o banco a
 	// cada mensagem de grupos sem configuração). O banco é a fonte da verdade.
 	groups map[string]*Group
