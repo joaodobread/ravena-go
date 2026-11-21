@@ -35,6 +35,9 @@ type Deps struct {
 
 // BotName é o nome do bot configurado no painel.
 func (d *Deps) BotName() string {
+	if d.Policy == nil {
+		return "ravena"
+	}
 	if n := d.Policy.Settings().BotName; n != "" {
 		return n
 	}

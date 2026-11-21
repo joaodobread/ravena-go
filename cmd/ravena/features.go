@@ -4,6 +4,7 @@ import (
 	"github.com/joaodobread/ravena-go/internal/app"
 	"github.com/joaodobread/ravena-go/internal/features/download"
 	"github.com/joaodobread/ravena-go/internal/features/greetings"
+	"github.com/joaodobread/ravena-go/internal/features/mediafx"
 	"github.com/joaodobread/ravena-go/internal/features/reminders"
 	"github.com/joaodobread/ravena-go/internal/features/sticker"
 )
@@ -16,5 +17,6 @@ func features() []app.Feature {
 		greetings.Module{},
 		download.Module{},
 		reminders.Module{},
+		mediafx.Module{},
 	}
 }
