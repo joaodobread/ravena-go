@@ -229,4 +229,3 @@ func adminPassword(ctx context.Context, cfg config.Config, st *store.Store, log 
 	log.Warn("ADMIN_PASSWORD não definida; usando senha gerada para o painel", "senha", pass)
 	return pass, nil
 }
-
