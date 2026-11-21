@@ -94,3 +94,23 @@ func TestFocusErrors(t *testing.T) {
 		t.Error("imagem inválida: esperava erro")
 	}
 }
+
+func TestChatBuildsMultimodalRequest(t *testing.T) {
+	var req chatRequest
+	c := server(t, 200, completion("olá!"), &req)
+	got, err := c.Chat(context.Background(), ChatRequest{
+		System:    "seja breve",
+		Messages:  []Message{{Role: "user", Text: "oi"}, {Role: "assistant", Text: "e aí"}, {Role: "user", Text: "e isso?", Images: [][]byte{testJPEG(t, 4, 4)}}},
+		MaxTokens: 50,
+	})
+	if err != nil || got != "olá!" {
+		t.Fatalf("Chat = %q, %v", got, err)
+	}
+	if len(req.Messages) != 4 || req.Messages[0].Role != "system" || req.MaxTokens != 50 {
+		t.Fatalf("requisição inesperada: %+v", req)
+	}
+	b, _ := json.Marshal(req.Messages[3])
+	if !strings.Contains(string(b), "data:image/jpeg;base64,") {
+		t.Fatalf("imagem ausente: %s", b)
+	}
+}

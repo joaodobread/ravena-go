@@ -3,6 +3,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,19 +15,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
-	_ "modernc.org/sqlite"
 
+	"github.com/joaodobread/ravena-go/internal/app"
 	"github.com/joaodobread/ravena-go/internal/bot"
 	"github.com/joaodobread/ravena-go/internal/config"
-	"github.com/joaodobread/ravena-go/internal/features/sticker"
 	"github.com/joaodobread/ravena-go/internal/llm"
 	"github.com/joaodobread/ravena-go/internal/media"
+	"github.com/joaodobread/ravena-go/internal/policy"
+	"github.com/joaodobread/ravena-go/internal/store"
 	"github.com/joaodobread/ravena-go/internal/wa"
+	"github.com/joaodobread/ravena-go/internal/web"
 )
 
 func main() {
@@ -36,6 +39,7 @@ func main() {
 }
 
 func run() error {
+	started := time.Now()
 	cfg, err := config.Load(config.Getenv)
 	if err != nil {
 		return err
@@ -49,6 +53,15 @@ func run() error {
 	if err := os.MkdirAll(cfg.DataDir, 0o700); err != nil {
 		return err
 	}
+
+	// Banco da aplicação.
+	st, err := store.Open(ctx, filepath.Join(cfg.DataDir, "app.db"))
+	if err != nil {
+		return fmt.Errorf("abrindo banco: %w", err)
+	}
+	defer st.Close()
+
+	// Sessão do WhatsApp (arquivo separado, gerenciado pelo whatsmeow).
 	dsn := "file:" + filepath.Join(cfg.DataDir, "whatsapp.db") +
 		"?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
 	container, err := sqlstore.New(ctx, "sqlite", dsn, waLog.Stdout("db", "WARN", false))
@@ -61,27 +74,70 @@ func run() error {
 	}
 	waClient := whatsmeow.NewClient(device, waLog.Stdout("wa", "WARN", false))
 	client := wa.NewClient(waClient)
+	session := wa.NewSession(waClient, cfg.PairPhone, log.With("mod", "sessao"))
 
 	router := bot.NewRouter(cfg.Prefix, client, log)
-	var focus sticker.FocusFinder
-	if cfg.OpenRouterKey != "" {
-		l := llm.New(cfg.OpenRouterKey, cfg.LLMModel)
-		l.BaseURL = cfg.OpenRouterBase
-		focus = l
-	} else {
-		log.Warn("OPENROUTER_API_KEY vazio: !sqi vai usar corte central")
-	}
-	stickers := sticker.New(
-		media.NewConverter(media.Options{Concurrency: cfg.FFmpegJobs}),
-		focus, cfg.StickerAuthor, log.With("feature", "sticker"),
-	)
-	if err := router.Register(stickers.Commands()...); err != nil {
+	pol, err := policy.New(ctx, st, client, cfg.SuperAdmins, policy.DefaultOptions, log.With("mod", "policy"))
+	if err != nil {
 		return err
 	}
-	router.Listen(stickers.AutoSticker)
+	router.SetPolicy(pol)
+	go pol.RunUsageWriter(ctx)
 
-	// whatsmeow chama os handlers em sequência; o trabalho pesado vai para
-	// goroutines, limitadas por um semáforo para não estourar memória.
+	password, err := adminPassword(ctx, cfg, st, log)
+	if err != nil {
+		return err
+	}
+	panel, err := web.New(ctx, web.Deps{
+		Store: st, Policy: pol, Router: router, Session: session, Groups: client,
+		Password: password, Log: log.With("mod", "painel"), Started: started,
+	})
+	if err != nil {
+		return err
+	}
+
+	var llmClient *llm.Client
+	if cfg.OpenRouterKey != "" {
+		llmClient = llm.New(cfg.OpenRouterKey, cfg.LLMModel)
+		llmClient.BaseURL = cfg.OpenRouterBase
+	} else {
+		log.Warn("OPENROUTER_API_KEY vazio: funções de IA ficam indisponíveis")
+	}
+	deps := &app.Deps{
+		Router: router, Client: client, Store: st, Policy: pol, LLM: llmClient,
+		Media: media.NewConverter(media.Options{Concurrency: cfg.FFmpegJobs}),
+		Web:   panel, HTTP: app.NewHTTPClient(), Log: log, DataDir: cfg.DataDir,
+	}
+	for _, f := range features() {
+		d := *deps
+		d.Log = log.With("feature", f.Name())
+		if err := f.Register(ctx, &d); err != nil {
+			return fmt.Errorf("registrando %s: %w", f.Name(), err)
+		}
+	}
+	log.Info("funcionalidades carregadas", "comandos", len(router.Commands()))
+
+	wireEvents(ctx, cfg, waClient, client, router, log)
+
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: panel.Handler(), ReadHeaderTimeout: 10 * time.Second}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("servidor HTTP", "err", err)
+		}
+	}()
+	log.Info("painel no ar", "addr", cfg.HTTPAddr)
+
+	session.Run(ctx) // bloqueia até o desligamento
+	log.Info("desligando")
+	shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return srv.Shutdown(shutdown)
+}
+
+// wireEvents liga os eventos do WhatsApp ao roteador.
+func wireEvents(ctx context.Context, cfg config.Config, waClient *whatsmeow.Client, client *wa.Client, router *bot.Router, log *slog.Logger) {
+	// whatsmeow chama os handlers em sequência; o trabalho vai para goroutines
+	// limitadas por um semáforo, para não estourar memória em rajadas.
 	workers := make(chan struct{}, cfg.Workers)
 	dispatch := func(fn func(context.Context)) {
 		go func() {
@@ -102,7 +158,7 @@ func run() error {
 	waClient.AddEventHandler(func(evt any) {
 		switch e := evt.(type) {
 		case *events.Message:
-			if time.Since(e.Info.Timestamp) > cfg.MaxMessageAge {
+			if time.Since(e.Info.Timestamp) > cfg.MaxMessageAge || e.Info.Chat.Server == "broadcast" {
 				return
 			}
 			if r, ok := wa.ReactionOf(e); ok {
@@ -122,95 +178,32 @@ func run() error {
 			recent.Add(e)
 			msg := wa.Convert(waClient, e)
 			dispatch(func(ctx context.Context) { router.Handle(ctx, msg) })
+		case *events.GroupInfo:
+			client.Invalidate(e.JID) // admins/nome mudaram
 		case *events.Connected:
 			log.Info("conectado ao WhatsApp", "jid", waClient.Store.ID)
-		case *events.LoggedOut:
-			log.Error("sessão encerrada pelo WhatsApp; apague o banco e pareie de novo", "reason", e.Reason)
 		}
 	})
-
-	// O HTTP sobe antes do pareamento para o healthcheck do deploy passar
-	// enquanto o QR/código espera alguém no celular.
-	if cfg.HTTPAddr != "" {
-		srv := healthServer(cfg.HTTPAddr, waClient)
-		go func() {
-			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Error("servidor HTTP", "err", err)
-			}
-		}()
-		defer srv.Shutdown(context.Background())
-	}
-
-	if err := connect(ctx, waClient, cfg, log); err != nil {
-		return err
-	}
-	defer waClient.Disconnect()
-
-	<-ctx.Done()
-	log.Info("desligando")
-	return nil
 }
 
-// connect conecta, pareando por QR ou código se ainda não houver sessão.
-func connect(ctx context.Context, c *whatsmeow.Client, cfg config.Config, log *slog.Logger) error {
-	if c.Store.ID != nil {
-		return c.Connect()
+// adminPassword devolve a senha do painel: a da variável ou uma gerada e salva.
+func adminPassword(ctx context.Context, cfg config.Config, st *store.Store, log *slog.Logger) (string, error) {
+	if cfg.AdminPassword != "" {
+		return cfg.AdminPassword, nil
 	}
-
-	qr, err := c.GetQRChannel(ctx)
+	var pass string
+	ok, err := st.GetJSON(ctx, "admin_password", &pass)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if err := c.Connect(); err != nil {
-		return err
-	}
-	requested := false
-	for item := range qr {
-		switch item.Event {
-		case whatsmeow.QRChannelEventCode:
-			if cfg.PairPhone != "" {
-				// O canal manda um QR novo a cada ~20s; o código só pode ser
-				// pedido uma vez, senão o anterior é invalidado.
-				if requested {
-					continue
-				}
-				requested = true
-				code, err := c.PairPhone(ctx, cfg.PairPhone, true, whatsmeow.PairClientChrome, "Chrome (Linux)")
-				if err != nil {
-					return fmt.Errorf("pareando por código: %w", err)
-				}
-				log.Info("WhatsApp > Aparelhos conectados > Conectar com número de telefone", "codigo", code)
-				continue
-			}
-			log.Info("escaneie o QR code abaixo em WhatsApp > Aparelhos conectados")
-			qrterminal.GenerateHalfBlock(item.Code, qrterminal.L, os.Stdout)
-		case whatsmeow.QRChannelSuccess.Event:
-			log.Info("pareado com sucesso")
-			return nil
-		default:
-			if item.Error != nil {
-				return fmt.Errorf("pareamento: %w", item.Error)
-			}
-			if item.Event == whatsmeow.QRChannelTimeout.Event {
-				return errors.New("pareamento expirou; reinicie para tentar de novo")
-			}
+	if !ok {
+		b := make([]byte, 9)
+		_, _ = rand.Read(b)
+		pass = hex.EncodeToString(b)
+		if err := st.SetJSON(ctx, "admin_password", pass); err != nil {
+			return "", err
 		}
 	}
-	return nil
-}
-
-func healthServer(addr string, c *whatsmeow.Client) *http.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		if c.Store.ID == nil {
-			_, _ = w.Write([]byte("aguardando pareamento"))
-			return
-		}
-		if !c.IsConnected() {
-			http.Error(w, "desconectado", http.StatusServiceUnavailable)
-			return
-		}
-		_, _ = w.Write([]byte("ok"))
-	})
-	return &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	log.Warn("ADMIN_PASSWORD não definida; usando senha gerada para o painel", "senha", pass)
+	return pass, nil
 }

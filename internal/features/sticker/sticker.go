@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/joaodobread/ravena-go/internal/app"
 	"github.com/joaodobread/ravena-go/internal/bot"
 	"github.com/joaodobread/ravena-go/internal/media"
 )
@@ -225,4 +226,24 @@ func randomID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// Module adapta a funcionalidade ao contrato app.Feature.
+type Module struct{}
+
+// Name implementa app.Feature.
+func (Module) Name() string { return "sticker" }
+
+// Register implementa app.Feature.
+func (Module) Register(_ context.Context, d *app.Deps) error {
+	var focus FocusFinder
+	if d.LLM != nil {
+		focus = d.LLM
+	}
+	f := New(d.Media, focus, "ravena", d.Log)
+	if err := d.Router.Register(f.Commands()...); err != nil {
+		return err
+	}
+	d.Router.Listen(f.AutoSticker)
+	return nil
 }

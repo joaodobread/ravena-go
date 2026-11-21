@@ -1,0 +1,38 @@
+{{define "content"}}
+<h1>Início</h1>
+{{template "status" .}}
+<div class="grid">
+  <div class="card"><div class="muted small">Memória (RSS)</div><div class="stat">{{.RSS}}</div><div class="muted small">heap {{.Heap}} · {{.Goroutines}} goroutines</div></div>
+  <div class="card"><div class="muted small">Comandos nas últimas 24h</div><div class="stat">{{.DayTotal}}</div><div class="muted small">{{.Commands}} comandos registrados</div></div>
+  <div class="card"><div class="muted small">No ar há</div><div class="stat">{{.Uptime}}</div></div>
+</div>
+<div class="grid">
+  <div class="card"><h2>Mais usados (24h)</h2>{{template "usage" .Day}}</div>
+  <div class="card"><h2>Mais usados (7 dias)</h2>{{template "usage" .Week}}</div>
+</div>
+{{end}}
+
+{{define "usage"}}
+{{if .}}<table>{{range .}}<tr><td>{{.Command}}</td><td>{{.Count}}{{if .Errors}} <span class="bad small">({{.Errors}} erros)</span>{{end}}</td></tr>{{end}}</table>
+{{else}}<p class="muted">Nenhum uso registrado.</p>{{end}}
+{{end}}
+
+{{define "status"}}
+{{with .Status}}
+<div class="card" id="status" {{if not (and .LoggedIn .Connected)}}hx-get="/status" hx-trigger="every 3s" hx-swap="outerHTML"{{end}}>
+  {{if not .LoggedIn}}
+    <h2>Parear o WhatsApp</h2>
+    <p class="muted">No celular do bot: <strong>WhatsApp → Aparelhos conectados → Conectar um aparelho</strong>.</p>
+    <div class="row">
+      {{if .QRImage}}<div class="qr"><img src="{{.QRImage}}" alt="QR code de pareamento"></div>{{else}}<p class="muted">Gerando QR…</p>{{end}}
+      {{if .PairCode}}<div><div class="muted small">ou “Conectar com número de telefone”:</div><div class="code">{{.PairCode}}</div></div>{{end}}
+    </div>
+  {{else if .Connected}}
+    <span class="pill ok">conectado</span> <strong>{{.PushName}}</strong> <span class="muted small">{{.JID}}</span>
+  {{else}}
+    <span class="pill warn">reconectando…</span> <span class="muted small">{{.JID}}</span>
+  {{end}}
+  {{if .LastError}}<p class="bad small">{{.LastError}}</p>{{end}}
+</div>
+{{end}}
+{{end}}

@@ -17,8 +17,12 @@ type Config struct {
 	LogLevel slog.Level
 	// PairPhone, se definido, pareia por código (sem QR) com esse número.
 	PairPhone string
-	// HTTPAddr expõe /healthz; vazio desliga.
+	// HTTPAddr expõe o painel e o /healthz (padrão :8080).
 	HTTPAddr string
+	// AdminPassword é a senha do painel; vazia, o bot gera uma e mostra no log.
+	AdminPassword string
+	// SuperAdmins são números com acesso total (além dos do painel).
+	SuperAdmins []string
 
 	MaxMessageAge  time.Duration // mensagens mais velhas são ignoradas (ex.: ao reconectar)
 	Workers        int           // mensagens processadas em paralelo
@@ -40,8 +44,12 @@ func Load(getenv func(string) string) (Config, error) {
 		OpenRouterBase: or(getenv("OPENROUTER_BASE_URL"), "https://openrouter.ai/api/v1"),
 		LLMModel:       or(getenv("LLM_MODEL"), "google/gemini-3.1-flash-lite"),
 	}
-	if port := getenv("PORT"); port != "" {
-		c.HTTPAddr = ":" + port
+	c.HTTPAddr = ":" + or(getenv("PORT"), "8080")
+	c.AdminPassword = getenv("ADMIN_PASSWORD")
+	for _, n := range strings.Split(getenv("SUPER_ADMINS"), ",") {
+		if n = strings.TrimSpace(n); n != "" {
+			c.SuperAdmins = append(c.SuperAdmins, n)
+		}
 	}
 
 	var err error

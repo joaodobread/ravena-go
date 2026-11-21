@@ -1,0 +1,19 @@
+{{define "content"}}
+<h1>Grupos</h1>
+{{if .Error}}<p class="bad small">Não consegui listar os grupos do WhatsApp: {{.Error}}</p>{{end}}
+<div class="card scroll">
+{{if .Groups}}
+<table>
+<tr><th>Grupo</th><th class="opt">Membros</th><th>Prefixo</th><th>Status</th></tr>
+{{range .Groups}}
+<tr>
+  <td><a href="/groups/{{.JID}}">{{if .Name}}{{.Name}}{{else}}{{.JID}}{{end}}</a></td>
+  <td class="opt">{{if .Members}}{{.Members}}{{else}}—{{end}}</td>
+  <td><code>{{if .Prefix}}{{.Prefix}}{{else}}{{$.DefaultPrefix}}{{end}}</code></td>
+  <td>{{if .Paused}}<span class="pill warn">pausado</span>{{else if .Saved}}<span class="pill ok">configurado</span>{{else}}<span class="muted small">padrão</span>{{end}}</td>
+</tr>
+{{end}}
+</table>
+{{else}}<p class="muted">O bot ainda não está em nenhum grupo.</p>{{end}}
+</div>
+{{end}}

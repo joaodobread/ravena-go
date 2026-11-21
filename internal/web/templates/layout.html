@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{if .Title}}{{.Title}} · {{end}}Ravena</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/htmx.min.js" defer></script>
+</head>
+<body hx-boost="true">
+{{if .Authed}}
+<header><div class="in">
+  <a class="brand" href="/">🐦‍⬛ Ravena</a>
+  <nav>{{range .Nav}}<a href="{{.Path}}" {{if eq $.Path .Path}}class="on"{{end}}>{{.Label}}</a>{{end}}</nav>
+  <form method="post" action="/logout"><button class="ghost" type="submit">Sair</button></form>
+</div></header>
+{{end}}
+<main>{{template "content" .}}</main>
+</body>
+</html>

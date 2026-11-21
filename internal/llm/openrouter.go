@@ -53,6 +53,7 @@ type chatRequest struct {
 	Model          string        `json:"model"`
 	Messages       []chatMessage `json:"messages"`
 	Temperature    float64       `json:"temperature"`
+	MaxTokens      int           `json:"max_tokens,omitempty"`
 	ResponseFormat any           `json:"response_format,omitempty"`
 }
 
@@ -80,6 +81,60 @@ var focusSchema = map[string]any{
 			"required": []string{"percentage"},
 		},
 	},
+}
+
+// Message é uma mensagem de conversa. Images são JPEG/PNG (opcional).
+type Message struct {
+	Role   string // "system", "user" ou "assistant"
+	Text   string
+	Images [][]byte
+}
+
+// ChatRequest é uma conversa com o modelo.
+type ChatRequest struct {
+	System      string
+	Messages    []Message
+	Temperature float64
+	MaxTokens   int
+	// JSONSchema, se definido, pede resposta estruturada (formato OpenAI).
+	JSONSchema map[string]any
+}
+
+// Chat envia a conversa e devolve o texto da resposta.
+func (c *Client) Chat(ctx context.Context, req ChatRequest) (string, error) {
+	var msgs []chatMessage
+	if req.System != "" {
+		msgs = append(msgs, chatMessage{Role: "system", Content: req.System})
+	}
+	for _, m := range req.Messages {
+		if len(m.Images) == 0 {
+			msgs = append(msgs, chatMessage{Role: m.Role, Content: m.Text})
+			continue
+		}
+		parts := []contentPart{{Type: "text", Text: m.Text}}
+		for _, img := range m.Images {
+			parts = append(parts, contentPart{Type: "image_url", ImageURL: &imageURL{URL: dataURI(img)}})
+		}
+		msgs = append(msgs, chatMessage{Role: m.Role, Content: parts})
+	}
+	r := chatRequest{Model: c.Model, Messages: msgs, Temperature: req.Temperature, MaxTokens: req.MaxTokens}
+	if req.JSONSchema != nil {
+		r.ResponseFormat = map[string]any{"type": "json_schema", "json_schema": map[string]any{"name": "resposta", "schema": req.JSONSchema}}
+	}
+	return c.complete(ctx, r)
+}
+
+// Ask é um atalho para uma pergunta simples.
+func (c *Client) Ask(ctx context.Context, system, prompt string) (string, error) {
+	return c.Chat(ctx, ChatRequest{System: system, Messages: []Message{{Role: "user", Text: prompt}}, Temperature: 0.7})
+}
+
+func dataURI(img []byte) string {
+	mime := "image/jpeg"
+	if len(img) > 4 && string(img[1:4]) == "PNG" {
+		mime = "image/png"
+	}
+	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(img)
 }
 
 // Focus pergunta ao modelo onde está a área de interesse de um JPEG e devolve

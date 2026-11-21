@@ -105,7 +105,7 @@ func TestConvertMediaKinds(t *testing.T) {
 
 func TestQuoteUsesRawMessage(t *testing.T) {
 	raw := &waE2E.Message{Conversation: new("oi")}
-	ci := quote(&bot.Message{ID: "X", Sender: sender, Ref: ref{raw: raw}})
+	ci := quote(&bot.Message{ID: "X", Sender: sender, Ref: ref{raw: raw}}, nil)
 	if ci.GetStanzaID() != "X" || ci.GetParticipant() != sender.String() || ci.GetQuotedMessage() != raw {
 		t.Fatalf("ContextInfo inesperado: %+v", ci)
 	}

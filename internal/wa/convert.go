@@ -28,6 +28,7 @@ func Convert(d Downloader, evt *events.Message) *bot.Message {
 		ID:        evt.Info.ID,
 		Chat:      evt.Info.Chat,
 		Sender:    evt.Info.Sender,
+		SenderAlt: evt.Info.SenderAlt,
 		PushName:  evt.Info.PushName,
 		IsGroup:   evt.Info.IsGroup,
 		FromMe:    evt.Info.IsFromMe,

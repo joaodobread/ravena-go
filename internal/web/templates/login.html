@@ -1,0 +1,11 @@
+{{define "content"}}
+<div class="card login">
+  <h1>🐦‍⬛ Ravena</h1>
+  {{if .Error}}<p class="bad">Senha incorreta.</p>{{end}}
+  <form method="post" action="/login" hx-boost="false">
+    <label for="password">Senha do painel</label>
+    <input id="password" type="password" name="password" autofocus required autocomplete="current-password">
+    <p><button type="submit">Entrar</button></p>
+  </form>
+</div>
+{{end}}

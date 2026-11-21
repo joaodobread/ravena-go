@@ -1,0 +1,48 @@
+{{define "content"}}
+<p class="small"><a href="/groups">← Grupos</a></p>
+<h1>{{if .G.Name}}{{.G.Name}}{{else}}{{.G.JID}}{{end}}</h1>
+{{if .Saved}}<div class="flash">Configurações salvas.</div>{{end}}
+<form method="post" action="/groups/{{.G.JID}}">
+<div class="grid">
+  <div class="card">
+    <h2>Geral</h2>
+    <label for="name">Nome</label><input id="name" type="text" name="name" value="{{.G.Name}}">
+    <label for="prefix">Prefixo dos comandos</label>
+    <input id="prefix" type="text" name="prefix" value="{{.G.Prefix}}" placeholder="{{.DefaultPrefix}} (padrão)" maxlength="5">
+    <label class="check"><input type="checkbox" name="paused" {{if .G.Paused}}checked{{end}}> Pausado (ignora comandos)</label>
+    <label class="check"><input type="checkbox" name="silly" {{if .G.Silly}}checked{{end}}> Responder elogios e xingamentos ao bot</label>
+  </div>
+  <div class="card">
+    <h2>Interações automáticas</h2>
+    <label class="check"><input type="checkbox" name="interact_enabled" {{if .G.Interact.Enabled}}checked{{end}}> Ativadas</label>
+    <label class="check"><input type="checkbox" name="interact_usecmds" {{if .G.Interact.UseCmds}}checked{{end}}> Podem usar comandos personalizados do grupo</label>
+    <label for="ic">Chance por mensagem (em 1/10000, máx. 500 = 5%)</label>
+    <input id="ic" type="number" name="interact_chance" min="0" max="500" value="{{.G.Interact.Chance}}">
+    <label for="icd">Intervalo mínimo (minutos, mín. 30)</label>
+    <input id="icd" type="number" name="interact_cooldown" min="30" value="{{.G.Interact.CooldownMin}}">
+    <label for="ip">% via IA (o resto usa comandos do grupo)</label>
+    <input id="ip" type="number" name="interact_proporcao" min="0" max="100" value="{{.G.Interact.Proporcao}}">
+  </div>
+</div>
+<div class="card">
+  <h2>Comandos silenciados</h2>
+  <p class="muted small">Silenciados não respondem para membros comuns; admins continuam podendo usar.</p>
+  {{range .Categories}}
+  <details>
+    <summary><label class="check" style="display:inline-flex"><input type="checkbox" name="muted_cat" value="{{.Name}}" {{if contains $.G.MutedCategories .Name}}checked{{end}}> Categoria inteira: {{.Name}}</label></summary>
+    <div class="cmds">{{range .Commands}}<label class="check"><input type="checkbox" name="muted" value="{{.Name}}" {{if contains $.G.MutedCommands .Name}}checked{{end}}> {{.Name}}</label>{{end}}</div>
+  </details>
+  {{end}}
+</div>
+<div class="grid">
+  <div class="card"><h2>Admins adicionais</h2><p class="muted small">Um número por linha. Podem usar comandos de admin do grupo.</p><textarea name="admins">{{lines .G.AdditionalAdmins}}</textarea></div>
+  <div class="card"><h2>Usuários ignorados</h2><p class="muted small">Um número por linha. O bot não responde a eles.</p><textarea name="ignored">{{lines .G.IgnoredUsers}}</textarea></div>
+</div>
+<p><button type="submit">Salvar</button></p>
+</form>
+<div class="card"><h2>Mais usados no grupo (7 dias)</h2>{{template "usage" .Usage}}</div>
+{{end}}
+
+{{define "usage"}}
+{{if .}}<table>{{range .}}<tr><td>{{.Command}}</td><td>{{.Count}}</td></tr>{{end}}</table>{{else}}<p class="muted">Nenhum uso registrado.</p>{{end}}
+{{end}}

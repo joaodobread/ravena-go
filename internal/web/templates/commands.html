@@ -1,0 +1,21 @@
+{{define "content"}}
+<h1>Comandos</h1>
+<p class="muted">Desativar aqui vale para todos os grupos. Para um grupo só, use “Comandos silenciados” na página do grupo.</p>
+<div class="card scroll">
+<table>
+<tr><th>Comando</th><th class="opt">Categoria</th><th class="opt">Descrição</th><th>Usos (7d)</th><th></th></tr>
+{{range .Rows}}{{template "row" (dict2 .  $.Prefix)}}{{end}}
+</table>
+</div>
+{{end}}
+
+{{define "row"}}
+{{$r := .Row}}
+<tr>
+  <td><code>{{.Prefix}}{{$r.Cmd.Name}}</code>{{if $r.Cmd.Aliases}}<div class="muted small">{{join $r.Cmd.Aliases ", "}}</div>{{end}}</td>
+  <td class="opt">{{$r.Cmd.Category}}</td>
+  <td class="opt small">{{$r.Cmd.Description}}{{if $r.Cmd.AdminOnly}} <span class="pill warn">admin</span>{{end}}{{if $r.Cmd.SuperAdminOnly}} <span class="pill bad">super admin</span>{{end}}</td>
+  <td>{{$r.Uses}}{{if $r.Errors}} <span class="bad small">({{$r.Errors}})</span>{{end}}</td>
+  <td><button type="button" class="{{if $r.Disabled}}ghost{{else}}danger{{end}}" hx-post="/commands/{{$r.Cmd.Name}}/toggle" hx-target="closest tr" hx-swap="outerHTML">{{if $r.Disabled}}Ativar{{else}}Desativar{{end}}</button></td>
+</tr>
+{{end}}

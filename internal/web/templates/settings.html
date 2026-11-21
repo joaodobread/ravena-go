@@ -1,0 +1,13 @@
+{{define "content"}}
+<h1>Configurações</h1>
+{{if .Saved}}<div class="flash">Configurações salvas.</div>{{end}}
+<form method="post" action="/settings" class="card">
+  <label for="bn">Nome do bot</label>
+  <input id="bn" type="text" name="bot_name" value="{{.S.BotName}}">
+  <label for="sa">Super admins</label>
+  <p class="muted small">Um número por linha (com DDI). Têm acesso total e não passam pelo anti-spam. Os da variável SUPER_ADMINS também valem.</p>
+  <textarea id="sa" name="super_admins">{{lines .S.SuperAdmins}}</textarea>
+  <label class="check"><input type="checkbox" name="ignore_private" {{if .S.IgnorePrivate}}checked{{end}}> Ignorar conversas privadas (exceto super admins)</label>
+  <p><button type="submit">Salvar</button></p>
+</form>
+{{end}}
