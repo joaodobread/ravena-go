@@ -133,6 +133,35 @@ func (c *Converter) AnimatedWebPToMP4(ctx context.Context, in []byte) ([]byte, e
 	return os.ReadFile(mp4)
 }
 
+// FFmpeg roda "ffmpeg -i <entrada> <args> <saída>" respeitando o limite de
+// concorrência. outExt define a extensão (e o formato) da saída, ex.: ".mp3".
+func (c *Converter) FFmpeg(ctx context.Context, in []byte, outExt string, args ...string) ([]byte, error) {
+	return c.ffmpeg(ctx, in, outExt, args...)
+}
+
+// Magick roda "magick <entrada><inExt> <args> <saída><outExt>" respeitando o
+// limite de concorrência (ex.: efeitos de imagem).
+func (c *Converter) Magick(ctx context.Context, in []byte, inExt, outExt string, args ...string) ([]byte, error) {
+	if err := c.acquire(ctx); err != nil {
+		return nil, err
+	}
+	defer c.release()
+	dir, err := os.MkdirTemp(c.opts.TempDir, "ravena-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+	src, dst := filepath.Join(dir, "in"+inExt), filepath.Join(dir, "out"+outExt)
+	if err := os.WriteFile(src, in, 0o600); err != nil {
+		return nil, err
+	}
+	full := append([]string{src}, args...)
+	if err := run(ctx, c.opts.Magick, append(full, dst)...); err != nil {
+		return nil, err
+	}
+	return os.ReadFile(dst)
+}
+
 // ffmpeg roda "ffmpeg -i <entrada> <args> <saída>" usando arquivos temporários:
 // MP4 por pipe falha quando o moov fica no fim do arquivo.
 func (c *Converter) ffmpeg(ctx context.Context, in []byte, outExt string, args ...string) ([]byte, error) {

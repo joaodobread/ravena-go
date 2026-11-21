@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"go.mau.fi/whatsmeow/types"
 )
 
 // Handler executa um comando.
@@ -60,6 +62,9 @@ type Context struct {
 	Client  Client
 	// Prefix usado no chat (útil para montar textos de ajuda).
 	Prefix string
+	// Reaction é preenchido quando o comando foi disparado por reação:
+	// Message é a mensagem reagida e Reaction diz quem reagiu e com o quê.
+	Reaction *Reaction
 
 	roles roles
 }
@@ -112,6 +117,13 @@ func (c *Context) ReplyText(ctx context.Context, format string, args ...any) err
 // Observer vê toda mensagem admitida, antes dos comandos (ranking, buffer de
 // conversa...). Deve ser rápido e não pode responder: roda no caminho de toda mensagem.
 type Observer func(ctx context.Context, msg *Message)
+
+// Reaction descreve a reação que disparou um comando.
+type Reaction struct {
+	Emoji string
+	By    types.JID // quem reagiu
+	ByAlt types.JID // identidade alternativa (número/LID)
+}
 
 // Listener trata mensagens que não são comandos (figurinha automática,
 // interações...). Devolve true quando tratou a mensagem.
@@ -274,7 +286,8 @@ func (r *Router) Handle(ctx context.Context, msg *Message) {
 
 // HandleReaction roda o comando ligado a emoji sobre target, a mensagem que
 // recebeu a reação. O texto/legenda dela vira os argumentos.
-func (r *Router) HandleReaction(ctx context.Context, target *Message, emoji string) {
+func (r *Router) HandleReaction(ctx context.Context, target *Message, re Reaction) {
+	emoji := re.Emoji
 	cmd, ok := r.triggers[emoji]
 	if !ok {
 		return
@@ -283,7 +296,9 @@ func (r *Router) HandleReaction(ctx context.Context, target *Message, emoji stri
 	if r.policy != nil && !r.policy.Admit(ctx, target) {
 		return
 	}
-	r.run(ctx, r.newContext(target, cmd, emoji, strings.Fields(target.Text), r.PrefixFor(ctx, target)))
+	c := r.newContext(target, cmd, emoji, strings.Fields(target.Text), r.PrefixFor(ctx, target))
+	c.Reaction = &re
+	r.run(ctx, c)
 }
 
 // Run executa cmd como se msg o tivesse chamado (usado por interações automáticas).

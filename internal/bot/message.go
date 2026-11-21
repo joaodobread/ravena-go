@@ -44,7 +44,9 @@ type Message struct {
 	Text      string
 	// Mentions são os usuários marcados (@) na mensagem.
 	Mentions []types.JID
-	Media    *Media
+	// MentionsBot diz se o próprio bot foi marcado.
+	MentionsBot bool
+	Media       *Media
 	// Quoted é a mensagem respondida (só ID, Sender, Text e Media).
 	Quoted *Message
 	// Ref guarda dados do adaptador (ex.: a mensagem crua para citar na resposta).

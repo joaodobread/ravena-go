@@ -59,6 +59,18 @@ func Convert(d Downloader, evt *events.Message) *bot.Message {
 	return msg
 }
 
+// MarkSelf marca msg.MentionsBot se alguma menção for uma das identidades do bot.
+func MarkSelf(msg *bot.Message, self ...types.JID) {
+	for _, m := range msg.Mentions {
+		for _, s := range self {
+			if s.User != "" && m.User == s.User {
+				msg.MentionsBot = true
+				return
+			}
+		}
+	}
+}
+
 // unwrap tira as camadas que o whatsmeow não remove (view once citado,
 // documento com legenda...).
 func unwrap(m *waE2E.Message) *waE2E.Message {

@@ -16,7 +16,7 @@ func imageEvent(id string) *events.Message {
 	return e
 }
 
-func TestRecentKeepsOnlyMediaAndEvictsOldest(t *testing.T) {
+func TestRecentKeepsMessagesAndEvictsOldest(t *testing.T) {
 	r := NewRecent(2, time.Hour)
 	text := event(&waE2E.Message{Conversation: new("oi")})
 	text.Info.ID = "T"
@@ -25,11 +25,16 @@ func TestRecentKeepsOnlyMediaAndEvictsOldest(t *testing.T) {
 	r.Add(imageEvent("B"))
 	r.Add(imageEvent("C")) // expulsa A
 
-	if _, ok := r.Get(group, "T"); ok {
-		t.Error("texto não deveria ser guardado")
+	for _, id := range []types.MessageID{"T", "A"} {
+		if _, ok := r.Get(group, id); ok {
+			t.Errorf("%s deveria ter sido expulsa (capacidade 2)", id)
+		}
 	}
-	if _, ok := r.Get(group, "A"); ok {
-		t.Error("A deveria ter sido expulsa")
+	reaction := event(&waE2E.Message{ReactionMessage: &waE2E.ReactionMessage{Text: new("👍")}})
+	reaction.Info.ID = "R"
+	r.Add(reaction)
+	if _, ok := r.Get(group, "R"); ok {
+		t.Error("reação não deveria ser guardada")
 	}
 	for _, id := range []types.MessageID{"B", "C"} {
 		if _, ok := r.Get(group, id); !ok {
@@ -59,7 +64,7 @@ func TestReactionOf(t *testing.T) {
 		}})
 	}
 	got, ok := ReactionOf(react("🖼"))
-	if !ok || got != (Reaction{Chat: group, TargetID: "ALVO", Emoji: "🖼"}) {
+	if !ok || got != (Reaction{Chat: group, TargetID: "ALVO", Emoji: "🖼", From: sender}) {
 		t.Fatalf("got %+v %v", got, ok)
 	}
 	if _, ok := ReactionOf(react("")); ok {

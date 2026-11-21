@@ -152,12 +152,12 @@ func TestHandleReactionRunsTriggeredCommandOnTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	target := msg("legenda da foto")
-	r.HandleReaction(context.Background(), target, "👍")
+	r.HandleReaction(context.Background(), target, bot.Reaction{Emoji: "👍", By: bottest.Admin})
 	if got != nil {
 		t.Fatal("emoji sem trigger não deveria rodar nada")
 	}
-	r.HandleReaction(context.Background(), target, "🖼")
-	if got == nil || got.Message != target || !slices.Equal(got.Args, []string{"legenda", "da", "foto"}) {
+	r.HandleReaction(context.Background(), target, bot.Reaction{Emoji: "🖼", By: bottest.Admin})
+	if got == nil || got.Message != target || !slices.Equal(got.Args, []string{"legenda", "da", "foto"}) || got.Reaction == nil || got.Reaction.By != bottest.Admin {
 		t.Fatalf("contexto inesperado: %+v", got)
 	}
 	if !slices.Equal(fc.Reactions, []string{"⌛️", "🖼"}) {

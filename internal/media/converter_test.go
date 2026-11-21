@@ -156,3 +156,18 @@ func TestConverterHonoursContext(t *testing.T) {
 		t.Fatalf("esperava context.Canceled, veio %v", err)
 	}
 }
+
+func TestGenericRunners(t *testing.T) {
+	requireBin(t, "ffmpeg", "magick")
+	c := newTestConverter(t)
+	img := lavfi(t, "testsrc=size=64x64", ".png", "-frames:v", "1")
+	out, err := c.Magick(context.Background(), img, ".png", ".jpg", "-implode", "0.5")
+	if err != nil || len(out) < 3 || out[0] != 0xff || out[1] != 0xd8 {
+		t.Fatalf("Magick: %v (% x)", err, out[:min(4, len(out))])
+	}
+	audio := lavfi(t, "sine=frequency=440:duration=1", ".wav")
+	mp3, err := c.FFmpeg(context.Background(), audio, ".mp3", "-c:a", "libmp3lame", "-b:a", "64k")
+	if err != nil || len(mp3) == 0 {
+		t.Fatalf("FFmpeg: %v", err)
+	}
+}

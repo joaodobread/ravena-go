@@ -9,6 +9,7 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
 
 	"github.com/joaodobread/ravena-go/internal/bot"
 	"github.com/joaodobread/ravena-go/internal/media"
@@ -25,6 +26,27 @@ type Client struct {
 	groups    map[types.JID]cachedGroup
 	joined    []*bot.GroupInfo
 	joinedExp time.Time
+
+	recent *Recent // opcional: guarda o que o bot envia, para reações a isso
+}
+
+// RecordSent faz as mensagens enviadas pelo bot entrarem em recent.
+func (c *Client) RecordSent(recent *Recent) { c.recent = recent }
+
+func (c *Client) send(ctx context.Context, chat types.JID, msg *waE2E.Message) error {
+	resp, err := c.wa.SendMessage(ctx, chat, msg)
+	if err != nil || c.recent == nil {
+		return err
+	}
+	me := c.Me()
+	c.recent.Add(&events.Message{
+		Info: types.MessageInfo{
+			MessageSource: types.MessageSource{Chat: chat, Sender: me, IsFromMe: true, IsGroup: chat.Server == types.GroupServer},
+			ID:            resp.ID, Timestamp: resp.Timestamp,
+		},
+		Message: msg,
+	})
+	return nil
 }
 
 type cachedGroup struct {
@@ -45,8 +67,7 @@ func (c *Client) Reply(ctx context.Context, to *bot.Message, out bot.Outgoing) e
 	if err != nil {
 		return err
 	}
-	_, err = c.wa.SendMessage(ctx, to.Chat, msg)
-	return err
+	return c.send(ctx, to.Chat, msg)
 }
 
 // Send envia out em chat, sem citar.
@@ -59,8 +80,7 @@ func (c *Client) Send(ctx context.Context, chat types.JID, out bot.Outgoing) err
 	if err != nil {
 		return err
 	}
-	_, err = c.wa.SendMessage(ctx, chat, msg)
-	return err
+	return c.send(ctx, chat, msg)
 }
 
 // React reage a msg.

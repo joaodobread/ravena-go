@@ -17,6 +17,7 @@ import (
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 
@@ -152,8 +153,19 @@ func wireEvents(ctx context.Context, cfg config.Config, waClient *whatsmeow.Clie
 			fn(hctx)
 		}()
 	}
-	// Mensagens com mídia recentes, para reações como 🖼 → figurinha.
-	recent := wa.NewRecent(2000, time.Hour)
+	// Mensagens recentes (inclusive as do bot), para reações como 🖼 → figurinha.
+	recent := wa.NewRecent(3000, 6*time.Hour)
+	client.RecordSent(recent)
+	self := func() []types.JID {
+		var out []types.JID
+		if id := waClient.Store.ID; id != nil {
+			out = append(out, id.ToNonAD())
+		}
+		if lid := waClient.Store.LID; !lid.IsEmpty() {
+			out = append(out, lid.ToNonAD())
+		}
+		return out
+	}
 
 	waClient.AddEventHandler(func(evt any) {
 		switch e := evt.(type) {
@@ -172,11 +184,13 @@ func wireEvents(ctx context.Context, cfg config.Config, waClient *whatsmeow.Clie
 					return
 				}
 				msg := wa.Convert(waClient, target)
-				dispatch(func(ctx context.Context) { router.HandleReaction(ctx, msg, r.Emoji) })
+				re := bot.Reaction{Emoji: r.Emoji, By: r.From, ByAlt: r.FromAlt}
+				dispatch(func(ctx context.Context) { router.HandleReaction(ctx, msg, re) })
 				return
 			}
 			recent.Add(e)
 			msg := wa.Convert(waClient, e)
+			wa.MarkSelf(msg, self()...)
 			dispatch(func(ctx context.Context) { router.Handle(ctx, msg) })
 		case *events.GroupInfo:
 			client.Invalidate(e.JID) // admins/nome mudaram

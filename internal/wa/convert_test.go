@@ -120,3 +120,17 @@ func TestConvertMentions(t *testing.T) {
 		t.Fatalf("Mentions = %v", m.Mentions)
 	}
 }
+
+func TestMarkSelf(t *testing.T) {
+	botLID := types.NewJID("777", types.HiddenUserServer)
+	m := &bot.Message{Mentions: []types.JID{sender, botLID}}
+	MarkSelf(m, types.NewJID("5562900000000", types.DefaultUserServer), botLID)
+	if !m.MentionsBot {
+		t.Fatal("deveria detectar menção ao bot pelo LID")
+	}
+	m = &bot.Message{Mentions: []types.JID{sender}}
+	MarkSelf(m, botLID)
+	if m.MentionsBot {
+		t.Fatal("não mencionou o bot")
+	}
+}

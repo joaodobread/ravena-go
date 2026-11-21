@@ -248,7 +248,7 @@ func TestReactingWithFrameEmojiMakesSticker(t *testing.T) {
 	for _, emoji := range []string{"🖼", "🖼️"} {
 		e := setup(t, nil)
 		target := groupMsg("Pacote Reação", image())
-		e.router.HandleReaction(context.Background(), target, emoji)
+		e.router.HandleReaction(context.Background(), target, bot.Reaction{Emoji: emoji, By: bottest.User})
 		out := e.client.Last()
 		meta, _ := media.ReadStickerMetadata(out.Out.Data)
 		if out.Out.Kind != bot.OutSticker || out.To != target || meta.PackName != "Pacote Reação" {
