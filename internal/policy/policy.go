@@ -171,7 +171,7 @@ func (p *Policy) Admit(ctx context.Context, msg *bot.Message) bool {
 
 // Allow aplica as regras de configuração ao comando.
 func (p *Policy) Allow(ctx context.Context, c *bot.Context) error {
-	cmd, msg := c.Command, c.Message
+	cmd, msg := c.Command, c.Actor() // em reações, quem reagiu
 	super := p.isSuper(msg)
 	if !super && slices.Contains(p.Settings().DisabledCommands, cmd.Name) {
 		return bot.ErrSilent
@@ -225,7 +225,7 @@ func (p *Policy) Roles(ctx context.Context, msg *bot.Message) (admin, super bool
 // Done enfileira a estatística do comando (descarta se a fila estiver cheia).
 func (p *Policy) Done(_ context.Context, c *bot.Context, err error) {
 	u := store.Usage{
-		Command: c.Command.Name, Chat: c.Message.Chat.String(), User: c.Message.Sender.User,
+		Command: c.Command.Name, Chat: c.Message.Chat.String(), User: c.Actor().Sender.User,
 		OK: err == nil, At: p.now(),
 	}
 	select {

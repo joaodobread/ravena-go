@@ -225,3 +225,23 @@ func TestBrVariant(t *testing.T) {
 		}
 	}
 }
+
+func TestReactionUsesReactorForAdminCheck(t *testing.T) {
+	e := setup(t)
+	must(t, e.router.Register(&bot.Command{Name: "apaga", AdminOnly: true, Triggers: []string{"🗑️"},
+		Run: func(context.Context, *bot.Context) error { *e.runs = append(*e.runs, "apaga"); return nil }}))
+	adminsMsg := bottest.GroupMsg("mensagem do admin")
+	adminsMsg.Sender = bottest.Admin
+
+	// Membro comum reagindo à mensagem de um admin: deve ser recusado.
+	e.router.HandleReaction(context.Background(), adminsMsg, bot.Reaction{Emoji: "🗑️", By: bottest.User})
+	if len(*e.runs) != 0 {
+		t.Fatal("reação de não-admin passou pelo AdminOnly usando o autor da mensagem")
+	}
+	// Admin reagindo à mensagem de um membro: deve passar.
+	*e.now = e.now.Add(time.Minute)
+	e.router.HandleReaction(context.Background(), bottest.GroupMsg("msg do membro"), bot.Reaction{Emoji: "🗑️", By: bottest.Admin})
+	if len(*e.runs) != 1 {
+		t.Fatal("admin reagindo deveria passar")
+	}
+}

@@ -55,6 +55,11 @@ func Convert(d Downloader, evt *events.Message) *bot.Message {
 			Media:  mediaOf(d, qm),
 			Ref:    ref{raw: q},
 		}
+		for _, raw := range contextInfo(qm).GetMentionedJID() {
+			if j, err := types.ParseJID(raw); err == nil {
+				msg.Quoted.Mentions = append(msg.Quoted.Mentions, j)
+			}
+		}
 	}
 	return msg
 }

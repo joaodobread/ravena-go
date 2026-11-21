@@ -68,6 +68,17 @@ type Context struct {
 	Reaction *Reaction
 
 	roles roles
+	actor *Message
+}
+
+// Actor é quem acionou o comando: o autor da mensagem ou, se o comando veio
+// de uma reação, quem reagiu (com o mesmo chat). Permissões, anti-spam e
+// estatísticas devem usar Actor, nunca Message.Sender.
+func (c *Context) Actor() *Message {
+	if c.actor != nil {
+		return c.actor
+	}
+	return c.Message
 }
 
 // roles resolve, uma vez por comando e só se alguém perguntar, quem é admin.
@@ -315,6 +326,9 @@ func (r *Router) HandleReaction(ctx context.Context, target *Message, re Reactio
 	}
 	c := r.newContext(target, cmd, emoji, strings.Fields(target.Text), r.PrefixFor(ctx, target))
 	c.Reaction = &re
+	actor := *target
+	actor.Sender, actor.SenderAlt, actor.PushName, actor.FromMe = re.By, re.ByAlt, "", false
+	c.actor = &actor
 	r.run(ctx, c)
 }
 
@@ -333,7 +347,8 @@ func (r *Router) HasTrigger(emoji string) bool {
 func (r *Router) newContext(msg *Message, cmd *Command, invoked string, args []string, prefix string) *Context {
 	c := &Context{Message: msg, Command: cmd, Invoked: invoked, Args: args, Client: r.client, Prefix: prefix}
 	if r.policy != nil {
-		c.roles.resolve = func(ctx context.Context) (bool, bool) { return r.policy.Roles(ctx, msg) }
+		// Resolve sobre Actor (definido depois, em reações): quem reagiu.
+		c.roles.resolve = func(ctx context.Context) (bool, bool) { return r.policy.Roles(ctx, c.Actor()) }
 	}
 	return c
 }

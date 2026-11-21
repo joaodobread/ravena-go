@@ -142,3 +142,15 @@ func TestConvertMediaMetadata(t *testing.T) {
 		t.Fatalf("metadados: %+v", m.Media)
 	}
 }
+
+func TestConvertQuotedMentions(t *testing.T) {
+	quoted := &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+		Text: new("oi @5511999999999"), ContextInfo: &waE2E.ContextInfo{MentionedJID: []string{sender.String()}},
+	}}
+	m := Convert(&fakeDownloader{}, event(&waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+		Text: new("!apagar"), ContextInfo: &waE2E.ContextInfo{StanzaID: new("Q"), QuotedMessage: quoted},
+	}}))
+	if m.Quoted == nil || len(m.Quoted.Mentions) != 1 || m.Quoted.Mentions[0] != sender {
+		t.Fatalf("menções da citada: %+v", m.Quoted)
+	}
+}

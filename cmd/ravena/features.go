@@ -5,9 +5,12 @@ import (
 	"github.com/joaodobread/ravena-go/internal/features/ai"
 	"github.com/joaodobread/ravena-go/internal/features/download"
 	"github.com/joaodobread/ravena-go/internal/features/fishing"
+	"github.com/joaodobread/ravena-go/internal/features/fun"
 	"github.com/joaodobread/ravena-go/internal/features/greetings"
+	"github.com/joaodobread/ravena-go/internal/features/groupcmds"
 	"github.com/joaodobread/ravena-go/internal/features/mediafx"
 	"github.com/joaodobread/ravena-go/internal/features/menu"
+	"github.com/joaodobread/ravena-go/internal/features/ranking"
 	"github.com/joaodobread/ravena-go/internal/features/reminders"
 	"github.com/joaodobread/ravena-go/internal/features/slots"
 	"github.com/joaodobread/ravena-go/internal/features/sticker"
@@ -37,5 +40,8 @@ func features() []app.Feature {
 		menu.Module{},
 		slotsGame,
 		fishingGame,
+		fun.Module{},
+		groupcmds.Module{},
+		ranking.Module{},
 	}
 }
