@@ -20,5 +20,4 @@ ENV DATA_DIR=/data \
     TZ=America/Sao_Paulo \
     # Teto suave do heap do Go: o GC fica mais agressivo antes de chegar nele.
     GOMEMLIMIT=64MiB
-VOLUME /data
 ENTRYPOINT ["/usr/local/bin/ravena"]
