@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	wastore "go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -69,11 +70,18 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("abrindo sessão: %w", err)
 	}
+	// O bot não usa o histórico de conversas: pede o mínimo no pareamento
+	// (vale para pareamentos novos) e não baixa o que vier depois.
+	hs := wastore.DeviceProps.HistorySyncConfig
+	hs.FullSyncDaysLimit, hs.RecentSyncDaysLimit = new(uint32(1)), new(uint32(1))
+	hs.FullSyncSizeMbLimit, hs.StorageQuotaMb = new(uint32(1)), new(uint32(1))
+	hs.InitialSyncMaxMessagesPerChat, hs.ThumbnailSyncDaysLimit = new(uint32(1)), new(uint32(0))
 	device, err := container.GetFirstDevice(ctx)
 	if err != nil {
 		return fmt.Errorf("carregando dispositivo: %w", err)
 	}
 	waClient := whatsmeow.NewClient(device, waLog.Stdout("wa", "WARN", false))
+	waClient.ManualHistorySyncDownload = true // ainda confirma o recebimento
 	client := wa.NewClient(waClient)
 	session := wa.NewSession(waClient, cfg.PairPhone, log.With("mod", "sessao"))
 
