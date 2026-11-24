@@ -91,6 +91,8 @@ func unwrap(m *waE2E.Message) *waE2E.Message {
 			m = m.GetViewOnceMessageV2Extension().GetMessage()
 		case m.GetDocumentWithCaptionMessage() != nil:
 			m = m.GetDocumentWithCaptionMessage().GetMessage()
+		case m.GetAudioStickerMessage() != nil: // figurinha com som
+			m = m.GetAudioStickerMessage().GetMessage()
 		default:
 			return m
 		}

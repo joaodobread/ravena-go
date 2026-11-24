@@ -46,7 +46,7 @@ Login por senha; tudo que o bot tem de configurável:
 
 | Área | Comandos |
 |---|---|
-| Figurinhas | `s`/`sticker`/`fig`, `sq` `sqc` `sqb` `sqe` `sqi` (corte por IA), reação 🖼, figurinha automática no privado, extrair mídia de figurinha |
+| Figurinhas | `s`/`sticker`/`fig`, `sq` `sqc` `sqb` `sqe` `sqi` (corte por IA), `ssom` (figurinha com som), reação 🖼, figurinha automática no privado, extrair mídia de figurinha |
 | Mídia | `distort` `morejpeg` `sketch` `oil` `neon` `pixelate`, `emojik`, `extractaudio` `extractvoice` `volume`, `audio` (MyInstants), `anime`, `apod` |
 | Downloads | `download`/`dl`/`yt`/`tiktok`/`insta`… (⬇️), `download-audio` (⏬), `sr`, `letra` |
 | IA | `ai` (🤖, com imagem), menção ao bot, `resumo` (🦜), `interagir` + interação automática, respostas a elogios/xingamentos, `ocr` (🔍), `tarot` |

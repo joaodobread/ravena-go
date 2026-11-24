@@ -2,6 +2,7 @@ package wa
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"sync"
 	"time"
@@ -225,14 +226,18 @@ func (c *Client) build(ctx context.Context, out bot.Outgoing, ci *waE2E.ContextI
 
 	switch out.Kind {
 	case bot.OutSticker:
-		return &waE2E.Message{StickerMessage: &waE2E.StickerMessage{
+		sm := &waE2E.StickerMessage{
 			URL: new(up.URL), DirectPath: new(up.DirectPath),
 			MediaKey: up.MediaKey, FileEncSHA256: up.FileEncSHA256, FileSHA256: up.FileSHA256,
 			FileLength: new(up.FileLength), Mimetype: new("image/webp"),
 			IsAnimated: new(out.Animated),
 			Width:      new(uint32(media.StickerSize)), Height: new(uint32(media.StickerSize)),
 			ContextInfo: ci,
-		}}, nil
+		}
+		if out.Sound == nil {
+			return &waE2E.Message{StickerMessage: sm}, nil
+		}
+		return c.soundSticker(ctx, sm, out.Sound)
 	case bot.OutImage:
 		return &waE2E.Message{ImageMessage: &waE2E.ImageMessage{
 			URL: new(up.URL), DirectPath: new(up.DirectPath),
@@ -267,6 +272,32 @@ func (c *Client) build(ctx context.Context, out bot.Outgoing, ci *waE2E.ContextI
 			Caption: new(out.Caption), ContextInfo: ci,
 		}}, nil
 	}
+}
+
+// soundSticker sobe o áudio e monta a figurinha com som: Message.audioStickerMessage
+// (FutureProofMessage) com a stickerMessage dentro e o audioMessage (nota de voz)
+// embutido nela. O whatsmeow não abre esse invólucro ao classificar o envio e
+// manda type="text" sem mediatype, que é o mesmo que o app/Baileys mandam.
+func (c *Client) soundSticker(ctx context.Context, sm *waE2E.StickerMessage, s *bot.Sound) (*waE2E.Message, error) {
+	up, err := c.wa.Upload(ctx, s.Data, whatsmeow.MediaAudio)
+	if err != nil {
+		return nil, fmt.Errorf("wa: upload do som: %w", err)
+	}
+	sm.Audio = &waE2E.StickerMessage_AudioMessage{AudioMessage: &waE2E.AudioMessage{
+		URL: new(up.URL), DirectPath: new(up.DirectPath),
+		MediaKey: up.MediaKey, FileEncSHA256: up.FileEncSHA256, FileSHA256: up.FileSHA256,
+		FileLength: new(up.FileLength), Mimetype: new("audio/ogg; codecs=opus"),
+		PTT: new(true), Seconds: new(s.Seconds), Waveform: s.Waveform,
+		MediaKeyTimestamp: new(time.Now().Unix()),
+	}}
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		return nil, err
+	}
+	return &waE2E.Message{
+		AudioStickerMessage: &waE2E.FutureProofMessage{Message: &waE2E.Message{StickerMessage: sm}},
+		MessageContextInfo:  &waE2E.MessageContextInfo{MessageSecret: secret},
+	}, nil
 }
 
 // JoinedGroups lista os grupos em que o bot está (usado pelo painel; cache de 1 min).

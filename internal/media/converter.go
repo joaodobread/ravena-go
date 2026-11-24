@@ -70,11 +70,17 @@ func (c *Converter) StaticSticker(ctx context.Context, in []byte, crop Crop) ([]
 
 // AnimatedSticker converte vídeo/GIF em figurinha WebP animada 512×512.
 func (c *Converter) AnimatedSticker(ctx context.Context, in []byte, crop Crop) ([]byte, error) {
+	return c.AnimatedStickerFor(ctx, in, crop, c.opts.MaxDuration)
+}
+
+// AnimatedStickerFor é o AnimatedSticker com duração máxima d (figurinha com
+// som acompanha o áudio, que pode ser mais longo que o padrão).
+func (c *Converter) AnimatedStickerFor(ctx context.Context, in []byte, crop Crop, d time.Duration) ([]byte, error) {
 	var out []byte
 	for _, a := range animatedAttempts {
 		var err error
 		out, err = c.ffmpeg(ctx, in, ".webp",
-			"-t", strconv.FormatFloat(c.opts.MaxDuration.Seconds(), 'f', -1, 64),
+			"-t", strconv.FormatFloat(d.Seconds(), 'f', -1, 64),
 			"-an",
 			"-vf", "fps="+strconv.Itoa(a.fps)+","+crop.Filter()+",format=yuva420p",
 			"-c:v", "libwebp", "-loop", "0", "-lossless", "0",

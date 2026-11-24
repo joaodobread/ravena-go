@@ -99,9 +99,18 @@ type Outgoing struct {
 	Caption  string
 	FileName string // OutDocument
 	Animated bool   // OutSticker
-	PTT      bool   // OutAudio: mensagem de voz
+	// Sound transforma o OutSticker em figurinha com som (nil: figurinha comum).
+	Sound *Sound
+	PTT   bool // OutAudio: mensagem de voz
 	// Mentions são os usuários marcados (o texto deve conter @numero).
 	Mentions []types.JID
+}
+
+// Sound é o áudio de uma figurinha com som.
+type Sound struct {
+	Data     []byte // ogg/opus
+	Seconds  uint32
+	Waveform []byte // 64 barras de 0 a 100 (opcional)
 }
 
 // Text cria uma resposta de texto.

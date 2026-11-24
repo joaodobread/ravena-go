@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/joaodobread/ravena-go/internal/app"
 	"github.com/joaodobread/ravena-go/internal/bot"
@@ -19,6 +20,8 @@ import (
 type Converter interface {
 	StaticSticker(ctx context.Context, in []byte, crop media.Crop) ([]byte, error)
 	AnimatedSticker(ctx context.Context, in []byte, crop media.Crop) ([]byte, error)
+	AnimatedStickerFor(ctx context.Context, in []byte, crop media.Crop, d time.Duration) ([]byte, error)
+	StickerSound(ctx context.Context, in []byte, max time.Duration) (media.Sound, error)
 	Frame(ctx context.Context, in []byte) ([]byte, error)
 	WebPToPNG(ctx context.Context, in []byte) ([]byte, error)
 	AnimatedWebPToMP4(ctx context.Context, in []byte) ([]byte, error)
@@ -85,7 +88,7 @@ func (f *Feature) Commands() []*bot.Command {
 			},
 		})
 	}
-	return cmds
+	return append(cmds, f.soundCommand())
 }
 
 func (f *Feature) handle(ctx context.Context, c *bot.Context, v variant) error {

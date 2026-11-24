@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	"go.mau.fi/whatsmeow/types"
 
@@ -40,9 +41,12 @@ func fakeAnimatedWebP() []byte {
 }
 
 type fakeConv struct {
-	calls   []string
-	crop    media.Crop
-	failAll bool
+	calls     []string
+	crop      media.Crop
+	failAll   bool
+	dur       time.Duration
+	soundFrom string
+	noSound   bool
 }
 
 func (f *fakeConv) StaticSticker(_ context.Context, _ []byte, c media.Crop) ([]byte, error) {
@@ -56,6 +60,19 @@ func (f *fakeConv) StaticSticker(_ context.Context, _ []byte, c media.Crop) ([]b
 func (f *fakeConv) AnimatedSticker(_ context.Context, _ []byte, c media.Crop) ([]byte, error) {
 	f.calls, f.crop = append(f.calls, "animated"), c
 	return fakeAnimatedWebP(), nil
+}
+
+func (f *fakeConv) AnimatedStickerFor(_ context.Context, _ []byte, c media.Crop, d time.Duration) ([]byte, error) {
+	f.calls, f.crop, f.dur = append(f.calls, "animated-for"), c, d
+	return fakeAnimatedWebP(), nil
+}
+
+func (f *fakeConv) StickerSound(_ context.Context, in []byte, _ time.Duration) (media.Sound, error) {
+	f.calls, f.soundFrom = append(f.calls, "sound"), string(in)
+	if f.noSound {
+		return media.Sound{}, errors.New("sem stream de áudio")
+	}
+	return media.Sound{Ogg: []byte("ogg"), Seconds: 3, Waveform: []byte{1, 2}}, nil
 }
 
 func (f *fakeConv) Frame(context.Context, []byte) ([]byte, error) {
