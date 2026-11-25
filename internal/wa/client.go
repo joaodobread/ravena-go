@@ -275,20 +275,25 @@ func (c *Client) build(ctx context.Context, out bot.Outgoing, ci *waE2E.ContextI
 }
 
 // soundSticker sobe o áudio e monta a figurinha com som: Message.audioStickerMessage
-// (FutureProofMessage) com a stickerMessage dentro e o audioMessage (nota de voz)
-// embutido nela. O whatsmeow não abre esse invólucro ao classificar o envio e
-// manda type="text" sem mediatype, que é o mesmo que o app/Baileys mandam.
+// (FutureProofMessage) com a stickerMessage dentro e o audioMessage embutido
+// nela. O stanza precisa sair type="media" mediatype="sticker"; o whatsmeow só
+// faz isso com patches/whatsmeow-audio-sticker.patch (aplicado no Dockerfile).
+// Sem ele sai type="text" e o celular mostra a figurinha sem som.
 func (c *Client) soundSticker(ctx context.Context, sm *waE2E.StickerMessage, s *bot.Sound) (*waE2E.Message, error) {
 	up, err := c.wa.Upload(ctx, s.Data, whatsmeow.MediaAudio)
 	if err != nil {
 		return nil, fmt.Errorf("wa: upload do som: %w", err)
 	}
+	now := time.Now()
+	sm.MediaKeyTimestamp = new(now.Unix())
+	sm.StickerSentTS = new(now.UnixMilli())
+	// Sem PTT, como na implementação do ravena-ai que funciona.
 	sm.Audio = &waE2E.StickerMessage_AudioMessage{AudioMessage: &waE2E.AudioMessage{
 		URL: new(up.URL), DirectPath: new(up.DirectPath),
 		MediaKey: up.MediaKey, FileEncSHA256: up.FileEncSHA256, FileSHA256: up.FileSHA256,
 		FileLength: new(up.FileLength), Mimetype: new("audio/ogg; codecs=opus"),
-		PTT: new(true), Seconds: new(s.Seconds), Waveform: s.Waveform,
-		MediaKeyTimestamp: new(time.Now().Unix()),
+		Seconds: new(s.Seconds), Waveform: s.Waveform,
+		MediaKeyTimestamp: new(now.Unix()),
 	}}
 	secret := make([]byte, 32)
 	if _, err := rand.Read(secret); err != nil {

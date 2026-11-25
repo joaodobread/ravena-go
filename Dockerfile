@@ -5,6 +5,14 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+# Figurinha com som: o whatsmeow não abre o audioStickerMessage ao montar o
+# stanza e manda type="text" sem mediatype, e o celular mostra só a figurinha.
+# O patch (tulir/whatsmeow#1366, ainda não aceito) faz sair media/sticker.
+RUN apk add --no-cache patch \
+    && WM=$(go list -m -f '{{.Dir}}' go.mau.fi/whatsmeow) \
+    && cp -r "$WM" /whatsmeow && chmod -R u+w /whatsmeow \
+    && patch -d /whatsmeow -p1 < patches/whatsmeow-audio-sticker.patch \
+    && go mod edit -replace go.mau.fi/whatsmeow=/whatsmeow
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ravena ./cmd/ravena
 
 FROM alpine:3.22
